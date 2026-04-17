@@ -573,8 +573,6 @@ export const GUARDRAIL_PROFILES = [
   { id: "Confidential", label: "Confidential (OSFI Restricted)" },
 ];
 
-<<<<<<< HEAD
-=======
 export interface DeployedApp {
   id: string;
   name: string;
@@ -594,7 +592,6 @@ export interface DeployedApp {
 export const isAgentApp = (app: Pick<DeployedApp, "blockIds">) => app.blockIds.includes("AGENT_CORE");
 export const isRagApp = (app: Pick<DeployedApp, "blockIds">) => app.blockIds.includes("VECTORSTORE");
 
->>>>>>> a92641303693ce5422b8ea352008e2cdeb4d4156
 export const INITIAL_APPS: DeployedApp[] = [
   {
     id: "app-001",
