@@ -7,7 +7,6 @@ import { AppsProvider } from "@/context/AppsContext";
 import { PortalLayout } from "@/components/portal/Layout";
 import Dashboard from "./pages/Dashboard";
 import BuildingBlocks from "./pages/BuildingBlocks";
-import Patterns from "./pages/Patterns";
 import CreateApp from "./pages/CreateApp";
 import DeployedApps from "./pages/DeployedApps";
 import Playground from "./pages/Playground";
@@ -26,7 +25,6 @@ const App = () => (
             <Route element={<PortalLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/building-blocks" element={<BuildingBlocks />} />
-              <Route path="/patterns" element={<Patterns />} />
               <Route path="/create" element={<CreateApp />} />
               <Route path="/deployed" element={<DeployedApps />} />
               <Route path="/playground" element={<Playground />} />

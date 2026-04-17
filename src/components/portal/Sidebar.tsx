@@ -1,11 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Boxes, Layers, Plus, Server, MessageSquare, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Boxes, Plus, Server, MessageSquare, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/building-blocks", label: "Building Blocks", icon: Boxes },
-  { to: "/patterns", label: "Patterns", icon: Layers },
   { to: "/create", label: "Create App", icon: Plus },
   { to: "/deployed", label: "Deployed Apps", icon: Server },
   { to: "/playground", label: "Playground", icon: MessageSquare },

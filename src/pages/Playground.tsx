@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/portal/PageHeader";
-import { PatternBadge } from "@/components/portal/PatternBadge";
 import { useApps } from "@/context/AppsContext";
+import { isAgentApp } from "@/lib/mockData";
 import { Send, ShieldCheck, ShieldAlert, ChevronDown, ChevronRight, FileText, Cpu, Clock, Coins, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -108,7 +108,7 @@ export default function Playground() {
     const outTok = 200 + Math.floor(Math.random() * 250);
     const cost = ((inTok * 0.000003) + (outTok * 0.000015));
     const latency = 800 + Math.floor(Math.random() * 1500);
-    const isAgent = (app?.pattern === "P5") || mode !== "pipeline";
+    const isAgent = (app && isAgentApp(app)) || mode !== "pipeline";
 
     setTelemetry({
       cost, latencyMs: latency, inTokens: inTok, outTokens: outTok,
@@ -159,7 +159,7 @@ export default function Playground() {
             <div className="flex items-center gap-2">
               <h2 className="text-[14px] font-semibold">Chat</h2>
               <span className="pill bg-info-soft border-primary/30 text-primary font-mono">{app.name}</span>
-              <PatternBadge id={app.pattern} />
+              <span className="pill bg-muted border-border text-foreground font-mono text-[10px]">{app.blockIds.length} blocks</span>
               <span className="pill bg-muted border-border text-muted-foreground">{app.modelLabel}</span>
               <span className="pill bg-muted border-border text-muted-foreground">{app.guardrailProfile}</span>
             </div>
