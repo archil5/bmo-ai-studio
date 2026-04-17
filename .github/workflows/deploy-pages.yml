@@ -2,8 +2,8 @@ name: Deploy PoC to GitHub Pages
 
 on:
   push:
-    branches: ["main"] # Or whatever your default branch is named
-  workflow_dispatch: # Allows you to trigger it manually
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,20 +21,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 20
-          cache: 'npm' # Note: your repo has a bun.lock, if you use bun, change this to setup-bun
+          bun-version: latest
           
       - name: Install dependencies
-        run: npm ci # OR bun install if you are using bun
+        run: bun install
         
       - name: Build project
-        run: npm run build # OR bun run build
+        run: bun run build
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
