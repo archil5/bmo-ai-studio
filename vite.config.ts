@@ -1,9 +1,8 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc"; // <-- This is the crucial fix
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // CRITICAL: Replace 'bmo-ai-studio' with your EXACT GitHub repo name
-  base: '/bmo-ai-studio/', 
-})
+  // Keep your base path for GitHub Pages
+  base: "/bmo-ai-studio/", 
+});
