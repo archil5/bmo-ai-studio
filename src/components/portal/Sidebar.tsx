@@ -1,13 +1,22 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Boxes, Plus, Server, MessageSquare, ShieldCheck } from "lucide-react";
+import {
+  LayoutDashboard, Boxes, Plus, Server, MessageSquare, ShieldCheck, Library,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/building-blocks", label: "Building Blocks", icon: Boxes },
-  { to: "/create", label: "Create App", icon: Plus },
-  { to: "/deployed", label: "Deployed Apps", icon: Server },
-  { to: "/playground", label: "Playground", icon: MessageSquare },
+  { section: "Overview", items: [
+    { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  ]},
+  { section: "Platform", items: [
+    { to: "/use-cases", label: "Use Cases", icon: Library },
+    { to: "/building-blocks", label: "Building Blocks", icon: Boxes },
+  ]},
+  { section: "Applications", items: [
+    { to: "/create", label: "Create App", icon: Plus },
+    { to: "/deployed", label: "Deployed Apps", icon: Server },
+    { to: "/playground", label: "Playground", icon: MessageSquare },
+  ]},
 ];
 
 export function PortalSidebar() {
@@ -19,28 +28,39 @@ export function PortalSidebar() {
         </div>
         <div className="leading-tight">
           <div className="text-[13px] font-semibold text-white">AI Developer Portal</div>
-          <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/70">LLMOps · AgentOps</div>
+          <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/70">
+            LLMOps · AgentOps · MLOps
+          </div>
         </div>
       </div>
 
-      <nav className="flex-1 py-3 px-2 space-y-0.5">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-2.5 px-3 py-2 rounded text-[13px] font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-white"
-                  : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-white"
-              )
-            }
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </NavLink>
+      <nav className="flex-1 py-3 px-2 space-y-4 overflow-y-auto">
+        {NAV.map((group) => (
+          <div key={group.section}>
+            <div className="text-[9px] uppercase tracking-widest text-sidebar-foreground/40 font-semibold px-3 mb-1">
+              {group.section}
+            </div>
+            <div className="space-y-0.5">
+              {group.items.map(({ to, label, icon: Icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-2.5 px-3 py-2 rounded text-[13px] font-medium transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-white"
+                        : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-white"
+                    )
+                  }
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
