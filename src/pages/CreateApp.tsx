@@ -6,17 +6,24 @@ import {
   TEAMS, expandWithDependencies,
 } from "@/lib/mockData";
 import { useApps } from "@/context/AppsContext";
-import { Check, ChevronRight, Loader2, ShieldCheck, ArrowRight, Lock, Box, Activity, Database, Workflow, Bot, AlertTriangle, Settings2 } from "lucide-react";
+import { Check, ChevronRight, Loader2, ShieldCheck, ArrowRight, Lock, Box, Activity, Database, Workflow, Bot, AlertTriangle, Settings2, TestTube, FileText, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["Identity", "Compose", "Deploy"];
 
 const CATEGORY_ICON: Record<string, any> = {
-  Foundation: Box, Governance: ShieldCheck, Operations: Activity,
-  "Data & Retrieval": Database, LLMOps: Workflow, AgentOps: Bot,
+  Foundation: Box, 
+  Governance: ShieldCheck, 
+  Operations: Activity,
+  "Prompt Management": FileText,
+  "Data & Retrieval": Database, 
+  LLMOps: Workflow, 
+  AgentOps: Bot,
+  Evaluation: TestTube,
+  "Model Customization": Cpu
 };
 
-const CATEGORY_ORDER = ["Foundation", "Governance", "Operations", "Data & Retrieval", "LLMOps", "AgentOps"];
+const CATEGORY_ORDER = ["Foundation", "Governance", "Operations", "Prompt Management", "Data & Retrieval", "LLMOps", "AgentOps", "Evaluation", "Model Customization"];
 
 export default function CreateApp() {
   const navigate = useNavigate();
@@ -35,14 +42,19 @@ export default function CreateApp() {
   );
   const [topK, setTopK] = useState(5);
 
-  // Extended Per-Block Configs (Mocked for PoC depth)
+  // Extended Per-Block Configs
   const [bc, setBc] = useState({
     coreLog: "INFO",
     obsTarget: "CloudWatch + MLflow",
     costAlert: 100,
     agentSteps: 5,
     agentTimeout: 30,
-    agentTrace: "Standard (OSFI Compliant)"
+    agentTrace: "Standard (OSFI Compliant)",
+    evalMetrics: "RAGAS Core (Faithfulness + Relevance)",
+    evalFrequency: "Nightly Batch",
+    promptApproval: "Require Manager Approval",
+    tuningEpochs: 3,
+    tuningRank: 8
   });
 
   const finalBlockIds = useMemo(() => expandWithDependencies(selected), [selected]);
@@ -93,7 +105,7 @@ export default function CreateApp() {
             isAgent={isAgent} hasVectorStore={hasVectorStore}
             model={model} guardrail={guardrail} systemPrompt={systemPrompt} topK={topK}
             onBack={() => setStep(1)}
-            onDeployed={(app) => addApp(app)}
+            onDeployed={(app: any) => addApp(app)}
             onTest={() => navigate("/playground")}
             onView={() => navigate("/deployed")}
           />
@@ -197,6 +209,7 @@ function StepCompose({
         </div>
 
         {grouped.map(({ cat, blocks }) => {
+          if (blocks.length === 0) return null;
           const Icon = CATEGORY_ICON[cat];
           return (
             <div key={cat}>
@@ -309,7 +322,6 @@ function StepCompose({
                   {MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </Field>
-              {/* If no pipeline or agent is selected (P4 pattern), the model takes the system prompt */}
               {!hasPipeline && !isAgent && renderSystemPrompt()}
             </ConfigCard>
           )}
@@ -319,6 +331,18 @@ function StepCompose({
               <Field label="Data Classification Profile">
                 <select value={guardrail} onChange={(e) => setGuardrail(e.target.value)} className={inputClass}>
                   {GUARDRAIL_PROFILES.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+                </select>
+              </Field>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("PROMPT_HUB") && (
+            <ConfigCard title="PROMPT_HUB">
+              <Field label="Deployment Workflow">
+                <select value={bc.promptApproval} onChange={(e) => setBc({...bc, promptApproval: e.target.value})} className={inputClass}>
+                  <option>Require Manager Approval</option>
+                  <option>Auto-Deploy (Dev Only)</option>
+                  <option>A/B Test Mode</option>
                 </select>
               </Field>
             </ConfigCard>
@@ -403,6 +427,54 @@ function StepCompose({
               <Field label="Monthly Alert Threshold (CAD $)">
                 <input type="number" value={bc.costAlert} onChange={(e) => setBc({...bc, costAlert: Number(e.target.value)})} className={inputClass} />
               </Field>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("EVAL_ENGINE") && (
+            <ConfigCard title="EVAL_ENGINE">
+              <Field label="Continuous Metric Suite">
+                <select value={bc.evalMetrics} onChange={(e) => setBc({...bc, evalMetrics: e.target.value})} className={inputClass}>
+                  <option>RAGAS Core (Faithfulness + Relevance)</option>
+                  <option>Toxicity & Bias Only</option>
+                  <option>Full Suite + LLM-as-a-Judge</option>
+                </select>
+              </Field>
+              <Field label="Execution Frequency">
+                <select value={bc.evalFrequency} onChange={(e) => setBc({...bc, evalFrequency: e.target.value})} className={inputClass}>
+                  <option>Nightly Batch</option>
+                  <option>10% Live Traffic Shadowing</option>
+                  <option>Manual Trigger Only</option>
+                </select>
+              </Field>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("DATA_PREP") && (
+            <ConfigCard title="DATA_PREP">
+               <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-muted/40 p-2 rounded border border-border">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
+                  <span>Mandatory PII scrubbing is enforced on all datasets before entering the training pipeline.</span>
+               </div>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("FINE_TUNER") && (
+            <ConfigCard title="FINE_TUNER (LoRA/PEFT)">
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Epochs">
+                  <input type="number" min={1} max={10} value={bc.tuningEpochs} onChange={(e) => setBc({...bc, tuningEpochs: Number(e.target.value)})} className={inputClass} />
+                </Field>
+                <Field label="LoRA Rank (r)">
+                   <select value={bc.tuningRank} onChange={(e) => setBc({...bc, tuningRank: Number(e.target.value)})} className={inputClass}>
+                    <option value={4}>4 (Light)</option>
+                    <option value={8}>8 (Standard)</option>
+                    <option value={16}>16 (Heavy)</option>
+                  </select>
+                </Field>
+              </div>
+              <div className="mt-2 text-[10px] text-warning bg-warning/10 p-1.5 rounded border border-warning/20">
+                ⚠️ Spins up dedicated GPU instances. Cost attributed directly to team budget.
+              </div>
             </ConfigCard>
           )}
 
