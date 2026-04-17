@@ -18,14 +18,10 @@ const STEPS = ["Use Case", "Identity", "Compose", "Deploy"];
 
 const CATEGORY_ICON: Record<string, any> = {
   Foundation: Box, Governance: ShieldCheck, Operations: Activity,
-  "Prompt Management": FileText, "Data & Retrieval": Database,
-  LLMOps: Workflow, AgentOps: Bot, Evaluation: TestTube, "Model Customization": Cpu,
+  "Data & Retrieval": Database, LLMOps: Workflow, AgentOps: Bot,
 };
 
-const CATEGORY_ORDER = [
-  "Foundation", "Governance", "Operations", "Prompt Management",
-  "Data & Retrieval", "LLMOps", "AgentOps", "Evaluation", "Model Customization",
-];
+const CATEGORY_ORDER = ["Foundation", "Governance", "Operations", "Data & Retrieval", "LLMOps", "AgentOps"];
 
 export default function CreateApp() {
   const navigate = useNavigate();
@@ -52,11 +48,15 @@ export default function CreateApp() {
     "You are a BMO financial assistant. Answer only questions grounded in retrieved documents. Do not speculate beyond available context."
   );
   const [topK, setTopK] = useState(5);
+
+  // Extended Per-Block Configs (Mocked for PoC depth)
   const [bc, setBc] = useState({
-    coreLog: "INFO", obsTarget: "CloudWatch + MLflow", costAlert: 100,
-    agentSteps: 5, agentTimeout: 30, agentTrace: "Standard (OSFI Compliant)",
-    evalMetrics: "RAGAS Core (Faithfulness + Relevance)", evalFrequency: "Nightly Batch",
-    promptApproval: "Require Manager Approval", tuningEpochs: 3, tuningRank: 8,
+    coreLog: "INFO",
+    obsTarget: "CloudWatch + MLflow",
+    costAlert: 100,
+    agentSteps: 5,
+    agentTimeout: 30,
+    agentTrace: "Standard (OSFI Compliant)"
   });
 
   const finalBlockIds = useMemo(() => expandWithDependencies(selected), [selected]);
@@ -118,8 +118,8 @@ export default function CreateApp() {
             useCaseId={selectedUCId}
             isAgent={isAgent} hasVectorStore={hasVectorStore} isMLOps={isMLOps}
             model={model} guardrail={guardrail} systemPrompt={systemPrompt} topK={topK}
-            onBack={() => setStep(2)}
-            onDeployed={(app: any) => addApp(app)}
+            onBack={() => setStep(1)}
+            onDeployed={(app) => addApp(app)}
             onTest={() => navigate("/playground")}
             onView={() => navigate("/deployed")}
           />
@@ -455,18 +455,6 @@ function StepCompose({
             </ConfigCard>
           )}
 
-          {finalBlockIds.includes("PROMPT_HUB") && (
-            <ConfigCard title="PROMPT HUB — Version Control">
-              <Field label="Deployment Workflow">
-                <select value={bc.promptApproval} onChange={(e) => setBc({ ...bc, promptApproval: e.target.value })} className={inputClass}>
-                  <option>Require Manager Approval</option>
-                  <option>Auto-Deploy (Dev Only)</option>
-                  <option>A/B Test Mode</option>
-                </select>
-              </Field>
-            </ConfigCard>
-          )}
-
           {finalBlockIds.includes("VECTORSTORE") && (
             <ConfigCard title="VECTORSTORE — OpenSearch Serverless">
               <Field label={`Top-K Retrieval Results: ${topK}`}>
@@ -578,36 +566,6 @@ function StepCompose({
             </ConfigCard>
           )}
 
-          {finalBlockIds.includes("DATA_PREP") && (
-            <ConfigCard title="DATA PREP — PII-Safe Curation">
-              <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-muted/40 p-2 rounded border border-border">
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
-                <span>Mandatory PII scrubbing is enforced on all datasets before entering any training pipeline. This cannot be disabled.</span>
-              </div>
-            </ConfigCard>
-          )}
-
-          {finalBlockIds.includes("FINE_TUNER") && (
-            <ConfigCard title="FINE TUNER — LoRA / PEFT">
-              <div className="grid grid-cols-2 gap-2">
-                <Field label="Epochs">
-                  <input type="number" min={1} max={10} value={bc.tuningEpochs}
-                    onChange={(e) => setBc({ ...bc, tuningEpochs: Number(e.target.value) })}
-                    className={inputClass} />
-                </Field>
-                <Field label="LoRA Rank (r)">
-                  <select value={bc.tuningRank} onChange={(e) => setBc({ ...bc, tuningRank: Number(e.target.value) })} className={inputClass}>
-                    <option value={4}>4 — Light</option>
-                    <option value={8}>8 — Standard</option>
-                    <option value={16}>16 — Heavy</option>
-                  </select>
-                </Field>
-              </div>
-              <div className="mt-2 text-[10px] text-warning bg-warning/10 p-1.5 rounded border border-warning/20">
-                ⚠️ Spins up dedicated GPU instances. Cost attributed to team budget.
-              </div>
-            </ConfigCard>
-          )}
         </div>
 
         <div className="shrink-0 pt-4 mt-4 border-t border-border flex flex-col gap-2">
