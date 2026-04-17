@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/portal/PageHeader";
-import { PatternBadge } from "@/components/portal/PatternBadge";
-import { BUILDING_BLOCKS, PATTERNS, PatternId } from "@/lib/mockData";
+import { BUILDING_BLOCKS, BuildingBlock } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
-import { Box, ShieldCheck, Activity, Database, Workflow, Bot } from "lucide-react";
+import { Box, ShieldCheck, Activity, Database, Workflow, Bot, Lock } from "lucide-react";
+
+const CATEGORIES = ["All", "Foundation", "Governance", "Operations", "Data & Retrieval", "LLMOps", "AgentOps"] as const;
+type Cat = typeof CATEGORIES[number];
 
 const CATEGORY_ICON: Record<string, any> = {
   Foundation: Box,
@@ -24,43 +26,36 @@ const CATEGORY_COLOR: Record<string, string> = {
 };
 
 export default function BuildingBlocks() {
-  const [filter, setFilter] = useState<PatternId | "ALL">("ALL");
+  const [filter, setFilter] = useState<Cat>("All");
+
+  const visible = BUILDING_BLOCKS.filter((b) => filter === "All" || b.category === filter);
 
   return (
     <>
       <PageHeader
         title="Platform Building Blocks"
-        subtitle="11 governed runtime modules. Select a pattern below to see which blocks it uses."
+        subtitle="11 governed runtime modules. Compose any combination to build your application — required blocks are auto-included."
       />
 
       <div className="flex flex-wrap gap-2 mb-5">
-        <FilterPill active={filter === "ALL"} onClick={() => setFilter("ALL")}>All</FilterPill>
-        {PATTERNS.map((p) => (
-          <FilterPill key={p.id} active={filter === p.id} onClick={() => setFilter(p.id)} patternId={p.id}>
-            {p.id} — {p.shortName}
+        {CATEGORIES.map((c) => (
+          <FilterPill key={c} active={filter === c} onClick={() => setFilter(c)}>
+            {c}
           </FilterPill>
         ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {BUILDING_BLOCKS.map((b) => {
+        {visible.map((b) => {
           const Icon = CATEGORY_ICON[b.category];
-          const inPattern = filter === "ALL" || b.patterns.includes(filter as PatternId);
           return (
-            <div
-              key={b.id}
-              className={cn(
-                "panel p-4 flex flex-col gap-3 transition-all",
-                filter !== "ALL" && inPattern && "border-primary ring-1 ring-primary/30 bg-info-soft/40 shadow-sm",
-                filter !== "ALL" && !inPattern && "opacity-40"
-              )}
-            >
+            <div key={b.id} className="panel p-4 flex flex-col gap-3 transition-all hover:shadow-sm">
               <div className="flex items-start justify-between gap-2">
                 <span className={cn("pill", CATEGORY_COLOR[b.category])}>
                   <Icon className="h-3 w-3" /> {b.category}
                 </span>
                 <span className={cn("pill text-[10px]", b.required ? "bg-destructive-soft border-destructive/30 text-destructive" : "bg-muted border-border text-muted-foreground")}>
-                  {b.required ? "Required" : "Optional"}
+                  {b.required ? <><Lock className="h-2.5 w-2.5" /> Required</> : "Optional"}
                 </span>
               </div>
 
@@ -69,12 +64,16 @@ export default function BuildingBlocks() {
                 <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">{b.description}</p>
               </div>
 
-              <div className="mt-auto pt-3 border-t border-border">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Used in patterns</div>
-                <div className="flex flex-wrap gap-1">
-                  {b.patterns.map((p) => <PatternBadge key={p} id={p} />)}
+              {b.requires && b.requires.length > 0 && (
+                <div className="mt-auto pt-3 border-t border-border">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Depends on</div>
+                  <div className="flex flex-wrap gap-1">
+                    {b.requires.map((r) => (
+                      <span key={r} className="pill bg-muted border-border text-foreground font-mono text-[10px]">{r}</span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
@@ -83,7 +82,7 @@ export default function BuildingBlocks() {
   );
 }
 
-function FilterPill({ children, active, onClick, patternId }: any) {
+function FilterPill({ children, active, onClick }: any) {
   return (
     <button
       onClick={onClick}

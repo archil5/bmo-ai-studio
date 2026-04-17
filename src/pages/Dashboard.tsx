@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/portal/PageHeader";
-import { PatternBadge, StatusPill } from "@/components/portal/PatternBadge";
+import { StatusPill } from "@/components/portal/PatternBadge";
 import { RECENT_ACTIVITY } from "@/lib/mockData";
 import { Activity, ShieldAlert, DollarSign, Server, ArrowUpRight, Download } from "lucide-react";
 import { useApps } from "@/context/AppsContext";
@@ -67,7 +67,7 @@ export default function Dashboard() {
                 <th>App Name</th>
                 <th>Team</th>
                 <th>Query</th>
-                <th>Pattern</th>
+                <th>Composition</th>
                 <th className="text-right">Latency</th>
                 <th className="text-right">Tokens</th>
                 <th>Status</th>
@@ -82,7 +82,7 @@ export default function Dashboard() {
                   <td className={`max-w-[320px] truncate ${row.status === "Blocked" ? "text-destructive font-medium" : ""}`} title={row.query}>
                     {row.query}
                   </td>
-                  <td><PatternBadge id={row.pattern} /></td>
+                  <td><span className="pill bg-muted border-border text-foreground font-mono text-[10px]">{row.composition}</span></td>
                   <td className="text-right font-mono text-[12px]">{row.latencyMs.toLocaleString()}ms</td>
                   <td className="text-right font-mono text-[12px]">{row.tokens.toLocaleString()}</td>
                   <td><StatusPill status={row.status} /></td>

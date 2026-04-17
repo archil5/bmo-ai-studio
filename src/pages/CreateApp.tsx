@@ -1,24 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/portal/PageHeader";
-import { PatternBadge } from "@/components/portal/PatternBadge";
-import { BUILDING_BLOCKS, GUARDRAIL_PROFILES, MODELS, PATTERNS, Pattern, PatternId, TEAMS, patternAccentClass } from "@/lib/mockData";
+import {
+  BUILDING_BLOCKS, BuildingBlock, GUARDRAIL_PROFILES, MODELS, REQUIRED_BLOCK_IDS,
+  TEAMS, expandWithDependencies,
+} from "@/lib/mockData";
 import { useApps } from "@/context/AppsContext";
-import { Check, ChevronRight, Loader2, ShieldCheck, ArrowRight, AlertTriangle } from "lucide-react";
+import { Check, ChevronRight, Loader2, ShieldCheck, ArrowRight, Lock, Box, Activity, Database, Workflow, Bot, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Identity", "Pattern", "Configure", "Deploy"];
+const STEPS = ["Identity", "Compose", "Deploy"];
+
+const CATEGORY_ICON: Record<string, any> = {
+  Foundation: Box, Governance: ShieldCheck, Operations: Activity,
+  "Data & Retrieval": Database, LLMOps: Workflow, AgentOps: Bot,
+};
+
+const CATEGORY_ORDER = ["Foundation", "Governance", "Operations", "Data & Retrieval", "LLMOps", "AgentOps"];
 
 export default function CreateApp() {
-  const [params] = useSearchParams();
-  const presetPattern = params.get("pattern") as PatternId | null;
   const navigate = useNavigate();
   const { addApp } = useApps();
 
-  const [step, setStep] = useState(presetPattern ? 2 : 0);
+  const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [team, setTeam] = useState(TEAMS[0]);
-  const [pattern, setPattern] = useState<PatternId | null>(presetPattern);
+  const [selected, setSelected] = useState<string[]>([...REQUIRED_BLOCK_IDS]);
   const [model, setModel] = useState(MODELS[1].id);
   const [guardrail, setGuardrail] = useState("Internal Only");
   const [systemPrompt, setSystemPrompt] = useState(
@@ -26,14 +33,22 @@ export default function CreateApp() {
   );
   const [topK, setTopK] = useState(5);
 
-  const selectedPattern = useMemo(() => PATTERNS.find((p) => p.id === pattern) ?? null, [pattern]);
-  const hasVectorStore = !!selectedPattern?.blockIds.includes("VECTORSTORE");
+  const finalBlockIds = useMemo(() => expandWithDependencies(selected), [selected]);
+  const hasVectorStore = finalBlockIds.includes("VECTORSTORE");
+  const isAgent = finalBlockIds.includes("AGENT_CORE");
+
+  const toggleBlock = (id: string) => {
+    if (REQUIRED_BLOCK_IDS.includes(id)) return;
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
   return (
     <>
       <PageHeader
         title="Create Application"
-        subtitle="Deploy a new governed AI application. All steps enforce OSFI E-23 model registry policies."
+        subtitle="Compose your application from governed building blocks. Required blocks are enforced and cannot be removed."
       />
 
       <Stepper step={step} />
@@ -46,31 +61,25 @@ export default function CreateApp() {
           />
         )}
         {step === 1 && (
-          <StepPattern
-            pattern={pattern} setPattern={setPattern}
-            onBack={() => setStep(0)} onNext={() => pattern && setStep(2)}
-          />
-        )}
-        {step === 2 && selectedPattern && (
-          <StepConfigure
-            pattern={selectedPattern}
-            hasVectorStore={hasVectorStore}
+          <StepCompose
+            selected={selected} finalBlockIds={finalBlockIds}
+            toggleBlock={toggleBlock}
+            isAgent={isAgent} hasVectorStore={hasVectorStore}
             model={model} setModel={setModel}
             guardrail={guardrail} setGuardrail={setGuardrail}
             systemPrompt={systemPrompt} setSystemPrompt={setSystemPrompt}
             topK={topK} setTopK={setTopK}
-            onBack={() => setStep(1)} onNext={() => setStep(3)}
+            onBack={() => setStep(0)}
+            onNext={() => setStep(2)}
           />
         )}
-        {step === 3 && selectedPattern && (
+        {step === 2 && (
           <StepDeploy
-            name={name} team={team} pattern={selectedPattern}
+            name={name} team={team} blockIds={finalBlockIds}
+            isAgent={isAgent} hasVectorStore={hasVectorStore}
             model={model} guardrail={guardrail} systemPrompt={systemPrompt} topK={topK}
-            hasVectorStore={hasVectorStore}
-            onBack={() => setStep(2)}
-            onDeployed={(app) => {
-              addApp(app);
-            }}
+            onBack={() => setStep(1)}
+            onDeployed={(app) => addApp(app)}
             onTest={() => navigate("/playground")}
             onView={() => navigate("/deployed")}
           />
@@ -129,7 +138,7 @@ function StepIdentity({ name, setName, team, setTeam, onNext }: any) {
           value={team} onChange={(e) => setTeam(e.target.value)}
           className="w-full px-3 py-2 border border-border rounded text-[13px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
         >
-          {TEAMS.map((t) => <option key={t}>{t}</option>)}
+          {TEAMS.map((t: string) => <option key={t}>{t}</option>)}
         </select>
       </Field>
       <div className="flex justify-end pt-3">
@@ -142,143 +151,208 @@ function StepIdentity({ name, setName, team, setTeam, onNext }: any) {
   );
 }
 
-function StepPattern({ pattern, setPattern, onBack, onNext }: any) {
-  const selected = PATTERNS.find((p) => p.id === pattern);
+function StepCompose({
+  selected, finalBlockIds, toggleBlock, isAgent, hasVectorStore,
+  model, setModel, guardrail, setGuardrail, systemPrompt, setSystemPrompt,
+  topK, setTopK, onBack, onNext,
+}: any) {
+  const grouped = CATEGORY_ORDER.map((cat) => ({
+    cat,
+    blocks: BUILDING_BLOCKS.filter((b) => b.category === cat),
+  }));
+
   return (
-    <div className="space-y-5 animate-fade-in">
-      <h2 className="text-[16px] font-semibold">Choose a Reference Pattern</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {PATTERNS.map((p) => {
-          const c = patternAccentClass(p.id);
-          const active = pattern === p.id;
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
+      {/* LEFT: Block checklist */}
+      <div className="lg:col-span-5 space-y-4">
+        <div>
+          <h2 className="text-[16px] font-semibold">Compose Application</h2>
+          <p className="text-[12px] text-muted-foreground mt-1">
+            Select the blocks your use case needs. Dependencies and required blocks are auto-included.
+          </p>
+        </div>
+
+        {grouped.map(({ cat, blocks }) => {
+          const Icon = CATEGORY_ICON[cat];
           return (
-            <button key={p.id} onClick={() => setPattern(p.id)}
-              className={cn("text-left panel p-4 transition-all hover:shadow-sm border-l-4", c.border,
-                active && "ring-2 ring-primary border-primary bg-info-soft/40")}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <PatternBadge id={p.id} />
-                  <span className="text-[14px] font-semibold">{p.name}</span>
-                </div>
-                {active && <Check className="h-4 w-4 text-primary" />}
+            <div key={cat}>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                <Icon className="h-3 w-3" /> {cat}
               </div>
-              <p className="text-[12px] text-muted-foreground line-clamp-3">{p.description}</p>
-              <div className="flex gap-3 mt-3 text-[11px] text-muted-foreground">
-                <span><span className="font-mono font-semibold text-foreground">{p.blocks}</span> blocks</span>
-                <span><span className="font-mono font-semibold text-foreground">{p.llmCalls}</span> LLM calls</span>
-                <span>Complexity: <span className="font-semibold text-foreground">{p.complexity}</span></span>
+              <div className="space-y-1.5">
+                {blocks.map((b) => {
+                  const isReq = b.required;
+                  const isSelected = finalBlockIds.includes(b.id);
+                  const isAuto = isSelected && !isReq && !selected.includes(b.id);
+                  return (
+                    <label
+                      key={b.id}
+                      className={cn(
+                        "flex items-start gap-2.5 p-2.5 rounded border cursor-pointer transition-all",
+                        isSelected ? "border-primary/40 bg-info-soft/40" : "border-border bg-card hover:bg-muted/40",
+                        isReq && "cursor-not-allowed opacity-95"
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        disabled={isReq}
+                        onChange={() => toggleBlock(b.id)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono text-[12px] font-semibold">{b.name}</span>
+                          {isReq && (
+                            <span className="pill text-[9px] bg-destructive-soft border-destructive/30 text-destructive">
+                              <Lock className="h-2.5 w-2.5" /> Required
+                            </span>
+                          )}
+                          {isAuto && (
+                            <span className="pill text-[9px] bg-warning-soft border-warning/40 text-warning">
+                              auto · dependency
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{b.description}</p>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
 
-      {selected && (
-        <div className="panel p-4">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Building blocks for {selected.id}</div>
-          <div className="flex flex-wrap gap-1.5">
-            {selected.blockIds.map((id) => {
-              const b = BUILDING_BLOCKS.find((x) => x.id === id);
-              return (
-                <span key={id} className="pill bg-info-soft border-primary/30 text-primary font-mono">
-                  <Check className="h-3 w-3" /> {b?.name}
-                </span>
-              );
-            })}
+      {/* MIDDLE: Live architecture diagram */}
+      <div className="lg:col-span-4">
+        <div className="sticky top-2 space-y-4">
+          <div className="panel p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[13px] font-semibold">Live Architecture</h3>
+              <span className="pill bg-info-soft border-primary/30 text-primary font-mono text-[10px]">
+                {finalBlockIds.length} blocks
+              </span>
+            </div>
+            <ArchitectureDiagram blockIds={finalBlockIds} />
           </div>
-        </div>
-      )}
 
-      <div className="flex justify-between pt-3">
-        <BackBtn onClick={onBack} />
-        <button disabled={!pattern} onClick={onNext}
-          className="px-5 py-2 rounded bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary-hover disabled:opacity-50 inline-flex items-center gap-1.5">
-          Next <ArrowRight className="h-3.5 w-3.5" />
-        </button>
+          <div className="panel p-4 bg-info-soft/40 border-primary/30">
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <h3 className="text-[13px] font-semibold">Governance Summary</h3>
+            </div>
+            <ul className="space-y-1.5 text-[11.5px]">
+              {[
+                "OSFI E-23 model registry enforced",
+                `Guardrail profile: ${guardrail}`,
+                "Application Inference Profile (AIP) required",
+                "PII detection: 8 entity types",
+                "Prompt injection blocking: active",
+                "Per-team cost attribution: enabled",
+                "Audit trace logged to MLflow",
+              ].map((line) => (
+                <li key={line} className="flex items-start gap-1.5">
+                  <Check className="h-3 w-3 text-success mt-0.5 shrink-0" />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {isAgent && (
+            <div className="panel p-3 bg-warning-soft border-warning/40">
+              <div className="flex items-start gap-2 text-[11.5px] text-warning">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span><strong>Agent composition.</strong> Autonomous reasoning consumes 3–15× more tokens. Cost alarms will be auto-configured.</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
 
-function StepConfigure({ pattern, hasVectorStore, model, setModel, guardrail, setGuardrail, systemPrompt, setSystemPrompt, topK, setTopK, onBack, onNext }: any) {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
-      <div className="lg:col-span-2 space-y-5">
-        <div className="flex items-center gap-2">
-          <h2 className="text-[16px] font-semibold">Configure</h2>
-          <PatternBadge id={pattern.id} />
-          <span className="text-[12px] text-muted-foreground">{pattern.name}</span>
-        </div>
+      {/* RIGHT: Runtime config */}
+      <div className="lg:col-span-3 space-y-4">
+        <h3 className="text-[13px] font-semibold">Runtime Configuration</h3>
 
-        <Field label="Foundation Model" hint="Restricted to OSFI E-23 approved models.">
+        <Field label="Foundation Model" hint="OSFI E-23 approved.">
           <select value={model} onChange={(e) => setModel(e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded text-[13px] bg-background">
+            className="w-full px-2.5 py-1.5 border border-border rounded text-[12px] bg-background">
             {MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
         </Field>
 
-        <Field label="Guardrail Profile" hint="Determines PII detection strictness and allowed data classifications.">
+        <Field label="Guardrail Profile" hint="Data classification scope.">
           <select value={guardrail} onChange={(e) => setGuardrail(e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded text-[13px] bg-background">
+            className="w-full px-2.5 py-1.5 border border-border rounded text-[12px] bg-background">
             {GUARDRAIL_PROFILES.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
           </select>
         </Field>
 
-        <Field label="System Prompt" hint="Grounding instructions enforced on every request.">
+        <Field label="System Prompt">
           <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)}
-            rows={5}
-            className="w-full px-3 py-2 border border-border rounded text-[13px] font-mono bg-background resize-y" />
+            rows={6}
+            className="w-full px-2.5 py-1.5 border border-border rounded text-[11.5px] font-mono bg-background resize-y" />
         </Field>
 
         {hasVectorStore && (
-          <Field label={`Top-K Retrieved Documents: ${topK}`} hint="Number of document chunks injected as context.">
+          <Field label={`Top-K Retrieved: ${topK}`}>
             <input type="range" min={1} max={10} value={topK} onChange={(e) => setTopK(Number(e.target.value))}
               className="w-full accent-primary" />
             <div className="flex justify-between text-[10px] text-muted-foreground mt-1 font-mono">
-              <span>1</span><span>5</span><span>10</span>
+              <span>1</span><span>10</span>
             </div>
           </Field>
         )}
 
-        <div className="flex justify-between pt-3">
-          <BackBtn onClick={onBack} />
+        <div className="flex flex-col gap-2 pt-2">
           <button onClick={onNext}
-            className="px-5 py-2 rounded bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary-hover inline-flex items-center gap-1.5">
-            Next <ArrowRight className="h-3.5 w-3.5" />
+            className="px-4 py-2 rounded bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary-hover inline-flex items-center justify-center gap-1.5">
+            Review & Deploy <ArrowRight className="h-3.5 w-3.5" />
           </button>
-        </div>
-      </div>
-
-      <div className="lg:col-span-1">
-        <div className="panel p-4 sticky top-2 bg-info-soft/40 border-primary/30">
-          <div className="flex items-center gap-2 mb-3">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            <h3 className="text-[13px] font-semibold">Governance Summary</h3>
-          </div>
-          <ul className="space-y-2 text-[12px]">
-            {[
-              "OSFI E-23 model registry enforced",
-              `Guardrail profile: ${guardrail}`,
-              "All invocations require Application Inference Profile (AIP)",
-              "PII detection: active (8 entity types)",
-              "Prompt injection blocking: active",
-              "Per-team cost attribution: enabled",
-              "Audit trace: every request logged to MLflow",
-            ].map((line) => (
-              <li key={line} className="flex items-start gap-2">
-                <Check className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
+          <BackBtn onClick={onBack} />
         </div>
       </div>
     </div>
   );
 }
 
-function StepDeploy({ name, team, pattern, model, guardrail, systemPrompt, topK, hasVectorStore, onBack, onDeployed, onTest, onView }: any) {
+function ArchitectureDiagram({ blockIds }: { blockIds: string[] }) {
+  const layers = CATEGORY_ORDER.map((cat) => ({
+    cat,
+    blocks: BUILDING_BLOCKS.filter((b) => b.category === cat && blockIds.includes(b.id)),
+  })).filter((l) => l.blocks.length > 0);
+
+  return (
+    <div className="space-y-1.5">
+      {layers.map(({ cat, blocks }, idx) => {
+        const Icon = CATEGORY_ICON[cat];
+        return (
+          <div key={cat}>
+            <div className="rounded border border-primary/30 bg-info-soft/60 p-2">
+              <div className="text-[9px] uppercase tracking-wider text-primary font-semibold flex items-center gap-1 mb-1.5">
+                <Icon className="h-2.5 w-2.5" /> {cat}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {blocks.map((b) => (
+                  <span key={b.id} className="px-1.5 py-0.5 rounded bg-card border border-border font-mono text-[10px] font-medium">
+                    {b.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {idx < layers.length - 1 && (
+              <div className="flex justify-center text-muted-foreground/60 text-xs leading-none">↓</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StepDeploy({ name, team, blockIds, isAgent, hasVectorStore, model, guardrail, systemPrompt, topK, onBack, onDeployed, onTest, onView }: any) {
   const [deploying, setDeploying] = useState(false);
   const [done, setDone] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
@@ -293,20 +367,19 @@ function StepDeploy({ name, team, pattern, model, guardrail, systemPrompt, topK,
       `Activating guardrail profile: ${guardrail}...`,
       "Enabling CloudWatch cost attribution...",
     ];
-    const agentSteps = pattern.id === "P5" ? [
-      "Registering agent tools...",
-      "Starting trajectory logger...",
-    ] : [];
-    const steps = [...baseSteps, ...agentSteps, "✓ Application deployed successfully."];
+    const blockSteps = blockIds
+      .filter((id: string) => !["CORE", "MODEL", "GUARDRAILS", "OBSERVE", "COST"].includes(id))
+      .map((id: string) => `Loading block: ${id}...`);
+    const steps = [...baseSteps, ...blockSteps, "✓ Application deployed successfully."];
 
     for (const s of steps) {
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 400));
       setLogs((prev) => [...prev, s]);
     }
 
     onDeployed({
       id: `app-${Date.now()}`,
-      name, team, pattern: pattern.id,
+      name, team, blockIds,
       model, modelLabel,
       guardrailProfile: guardrail,
       systemPrompt, topK: hasVectorStore ? topK : undefined,
@@ -345,18 +418,27 @@ function StepDeploy({ name, team, pattern, model, guardrail, systemPrompt, topK,
         <div className="panel divide-y divide-border">
           <ReviewRow label="Application Name" value={name} mono />
           <ReviewRow label="Team" value={team} />
-          <ReviewRow label="Pattern" value={<><PatternBadge id={pattern.id} /> {pattern.name}</>} />
+          <ReviewRow label="Composition" value={`${blockIds.length} blocks${isAgent ? " · Agent" : hasVectorStore ? " · RAG" : " · Inference"}`} />
           <ReviewRow label="Model" value={modelLabel} />
           <ReviewRow label="Guardrail Profile" value={guardrail} />
           {hasVectorStore && <ReviewRow label="Top-K Retrieval" value={String(topK)} mono />}
           <ReviewRow label="System Prompt" value={<span className="text-[11px] font-mono text-muted-foreground line-clamp-3">{systemPrompt}</span>} />
         </div>
 
-        {pattern.id === "P5" && (
+        <div className="mt-3 panel p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Selected Blocks</div>
+          <div className="flex flex-wrap gap-1">
+            {blockIds.map((id: string) => (
+              <span key={id} className="pill bg-info-soft border-primary/30 text-primary font-mono text-[10px]">{id}</span>
+            ))}
+          </div>
+        </div>
+
+        {isAgent && (
           <div className="mt-4 panel p-3 bg-warning-soft border-warning/40">
             <div className="flex items-start gap-2 text-[12px] text-warning">
               <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span><strong>Higher cost pattern.</strong> Autonomous agents consume 3–15× more tokens. Cost alarms will be auto-configured.</span>
+              <span><strong>Higher cost composition.</strong> Autonomous agents consume 3–15× more tokens. Cost alarms will be auto-configured.</span>
             </div>
           </div>
         )}
@@ -372,7 +454,7 @@ function StepDeploy({ name, team, pattern, model, guardrail, systemPrompt, topK,
 
       <div>
         <h2 className="text-[16px] font-semibold mb-4">Deployment Log</h2>
-        <div className="panel bg-[#0b1220] text-[#a8e6a3] font-mono text-[12px] p-4 h-[360px] overflow-auto">
+        <div className="panel bg-[#0b1220] text-[#a8e6a3] font-mono text-[12px] p-4 h-[420px] overflow-auto">
           {logs.length === 0 && <div className="text-[#6b7280]">$ awaiting deployment...</div>}
           {logs.map((l, i) => (
             <div key={i} className="animate-fade-in py-0.5">
@@ -398,9 +480,9 @@ function ReviewRow({ label, value, mono }: any) {
 function Field({ label, hint, children }: any) {
   return (
     <div>
-      <label className="block text-[12px] font-medium text-foreground mb-1">{label}</label>
+      <div className="text-[11px] font-medium mb-1">{label}</div>
       {children}
-      {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
+      {hint && <div className="text-[10.5px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
 }
