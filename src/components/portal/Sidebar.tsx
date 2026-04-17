@@ -47,10 +47,10 @@ export function PortalSidebar() {
       <div className="border-t border-sidebar-border px-3 py-3 space-y-2">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-[11px] font-semibold text-white">
-            JM
+            AP
           </div>
           <div className="leading-tight min-w-0">
-            <div className="text-[12px] font-medium text-white truncate">J. Morrison</div>
+            <div className="text-[12px] font-medium text-white truncate">Archil Patel</div>
             <div className="text-[10px] text-sidebar-foreground/70 truncate">Principal Cloud Engineer</div>
           </div>
         </div>

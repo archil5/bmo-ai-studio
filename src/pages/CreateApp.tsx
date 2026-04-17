@@ -6,7 +6,7 @@ import {
   TEAMS, expandWithDependencies,
 } from "@/lib/mockData";
 import { useApps } from "@/context/AppsContext";
-import { Check, ChevronRight, Loader2, ShieldCheck, ArrowRight, Lock, Box, Activity, Database, Workflow, Bot, AlertTriangle } from "lucide-react";
+import { Check, ChevronRight, Loader2, ShieldCheck, ArrowRight, Lock, Box, Activity, Database, Workflow, Bot, AlertTriangle, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["Identity", "Compose", "Deploy"];
@@ -26,6 +26,8 @@ export default function CreateApp() {
   const [name, setName] = useState("");
   const [team, setTeam] = useState(TEAMS[0]);
   const [selected, setSelected] = useState<string[]>([...REQUIRED_BLOCK_IDS]);
+  
+  // Core Configs
   const [model, setModel] = useState(MODELS[1].id);
   const [guardrail, setGuardrail] = useState("Internal Only");
   const [systemPrompt, setSystemPrompt] = useState(
@@ -33,9 +35,20 @@ export default function CreateApp() {
   );
   const [topK, setTopK] = useState(5);
 
+  // Extended Per-Block Configs (Mocked for PoC depth)
+  const [bc, setBc] = useState({
+    coreLog: "INFO",
+    obsTarget: "CloudWatch + MLflow",
+    costAlert: 100,
+    agentSteps: 5,
+    agentTimeout: 30,
+    agentTrace: "Standard (OSFI Compliant)"
+  });
+
   const finalBlockIds = useMemo(() => expandWithDependencies(selected), [selected]);
   const hasVectorStore = finalBlockIds.includes("VECTORSTORE");
   const isAgent = finalBlockIds.includes("AGENT_CORE");
+  const hasPipeline = finalBlockIds.includes("PIPELINE");
 
   const toggleBlock = (id: string) => {
     if (REQUIRED_BLOCK_IDS.includes(id)) return;
@@ -64,11 +77,12 @@ export default function CreateApp() {
           <StepCompose
             selected={selected} finalBlockIds={finalBlockIds}
             toggleBlock={toggleBlock}
-            isAgent={isAgent} hasVectorStore={hasVectorStore}
+            isAgent={isAgent} hasVectorStore={hasVectorStore} hasPipeline={hasPipeline}
             model={model} setModel={setModel}
             guardrail={guardrail} setGuardrail={setGuardrail}
             systemPrompt={systemPrompt} setSystemPrompt={setSystemPrompt}
             topK={topK} setTopK={setTopK}
+            bc={bc} setBc={setBc}
             onBack={() => setStep(0)}
             onNext={() => setStep(2)}
           />
@@ -152,14 +166,24 @@ function StepIdentity({ name, setName, team, setTeam, onNext }: any) {
 }
 
 function StepCompose({
-  selected, finalBlockIds, toggleBlock, isAgent, hasVectorStore,
+  selected, finalBlockIds, toggleBlock, isAgent, hasVectorStore, hasPipeline,
   model, setModel, guardrail, setGuardrail, systemPrompt, setSystemPrompt,
-  topK, setTopK, onBack, onNext,
+  topK, setTopK, bc, setBc, onBack, onNext,
 }: any) {
   const grouped = CATEGORY_ORDER.map((cat) => ({
     cat,
     blocks: BUILDING_BLOCKS.filter((b) => b.category === cat),
   }));
+
+  const inputClass = "w-full px-2.5 py-1.5 border border-border rounded text-[11.5px] bg-background focus:outline-none focus:border-primary";
+
+  const renderSystemPrompt = () => (
+    <Field label="System Prompt" hint="Defines the core behavior and boundaries.">
+      <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)}
+        rows={4}
+        className="w-full px-2.5 py-1.5 border border-border rounded text-[11px] font-mono bg-background resize-y focus:outline-none focus:border-primary" />
+    </Field>
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
@@ -168,7 +192,7 @@ function StepCompose({
         <div>
           <h2 className="text-[16px] font-semibold">Compose Application</h2>
           <p className="text-[12px] text-muted-foreground mt-1">
-            Select the blocks your use case needs. Dependencies and required blocks are auto-included.
+            Select the blocks your use case needs. Required dependencies are auto-included.
           </p>
         </div>
 
@@ -248,10 +272,8 @@ function StepCompose({
                 "OSFI E-23 model registry enforced",
                 `Guardrail profile: ${guardrail}`,
                 "Application Inference Profile (AIP) required",
-                "PII detection: 8 entity types",
-                "Prompt injection blocking: active",
-                "Per-team cost attribution: enabled",
-                "Audit trace logged to MLflow",
+                "PII detection & Injection blocking",
+                "Per-team cost attribution enabled",
               ].map((line) => (
                 <li key={line} className="flex items-start gap-1.5">
                   <Check className="h-3 w-3 text-success mt-0.5 shrink-0" />
@@ -260,59 +282,153 @@ function StepCompose({
               ))}
             </ul>
           </div>
-
-          {isAgent && (
-            <div className="panel p-3 bg-warning-soft border-warning/40">
-              <div className="flex items-start gap-2 text-[11.5px] text-warning">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span><strong>Agent composition.</strong> Autonomous reasoning consumes 3–15× more tokens. Cost alarms will be auto-configured.</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* RIGHT: Runtime config */}
-      <div className="lg:col-span-3 space-y-4">
-        <h3 className="text-[13px] font-semibold">Runtime Configuration</h3>
+      {/* RIGHT: Dynamic Per-Block Configurations */}
+      <div className="lg:col-span-3 flex flex-col h-full">
+        <h3 className="text-[13px] font-semibold mb-3 shrink-0">Block Configurations</h3>
+        <p className="text-[11.5px] text-muted-foreground mb-4 shrink-0">Fine-tune the parameters for your selected blocks.</p>
+        
+        <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar max-h-[480px]">
+          
+          {finalBlockIds.includes("CORE") && (
+            <ConfigCard title="CORE">
+              <Field label="Platform Log Level">
+                <select value={bc.coreLog} onChange={(e) => setBc({...bc, coreLog: e.target.value})} className={inputClass}>
+                  <option>INFO</option><option>DEBUG</option><option>WARN</option>
+                </select>
+              </Field>
+            </ConfigCard>
+          )}
 
-        <Field label="Foundation Model" hint="OSFI E-23 approved.">
-          <select value={model} onChange={(e) => setModel(e.target.value)}
-            className="w-full px-2.5 py-1.5 border border-border rounded text-[12px] bg-background">
-            {MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-          </select>
-        </Field>
+          {finalBlockIds.includes("MODEL") && (
+            <ConfigCard title="MODEL">
+              <Field label="Foundation Model (E-23 Approved)">
+                <select value={model} onChange={(e) => setModel(e.target.value)} className={inputClass}>
+                  {MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+              </Field>
+              {/* If no pipeline or agent is selected (P4 pattern), the model takes the system prompt */}
+              {!hasPipeline && !isAgent && renderSystemPrompt()}
+            </ConfigCard>
+          )}
 
-        <Field label="Guardrail Profile" hint="Data classification scope.">
-          <select value={guardrail} onChange={(e) => setGuardrail(e.target.value)}
-            className="w-full px-2.5 py-1.5 border border-border rounded text-[12px] bg-background">
-            {GUARDRAIL_PROFILES.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
-          </select>
-        </Field>
+          {finalBlockIds.includes("GUARDRAILS") && (
+            <ConfigCard title="GUARDRAILS">
+              <Field label="Data Classification Profile">
+                <select value={guardrail} onChange={(e) => setGuardrail(e.target.value)} className={inputClass}>
+                  {GUARDRAIL_PROFILES.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+                </select>
+              </Field>
+            </ConfigCard>
+          )}
 
-        <Field label="System Prompt">
-          <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)}
-            rows={6}
-            className="w-full px-2.5 py-1.5 border border-border rounded text-[11.5px] font-mono bg-background resize-y" />
-        </Field>
+          {finalBlockIds.includes("VECTORSTORE") && (
+            <ConfigCard title="VECTORSTORE">
+              <Field label={`Top-K Retrieval: ${topK}`}>
+                <input type="range" min={1} max={10} value={topK} onChange={(e) => setTopK(Number(e.target.value))}
+                  className="w-full accent-primary" />
+                <div className="flex justify-between text-[10px] text-muted-foreground mt-1 font-mono">
+                  <span>1</span><span>10</span>
+                </div>
+              </Field>
+            </ConfigCard>
+          )}
 
-        {hasVectorStore && (
-          <Field label={`Top-K Retrieved: ${topK}`}>
-            <input type="range" min={1} max={10} value={topK} onChange={(e) => setTopK(Number(e.target.value))}
-              className="w-full accent-primary" />
-            <div className="flex justify-between text-[10px] text-muted-foreground mt-1 font-mono">
-              <span>1</span><span>10</span>
-            </div>
-          </Field>
-        )}
+          {finalBlockIds.includes("PIPELINE") && (
+            <ConfigCard title="PIPELINE">
+              {renderSystemPrompt()}
+            </ConfigCard>
+          )}
 
-        <div className="flex flex-col gap-2 pt-2">
+          {finalBlockIds.includes("AGENT_CORE") && (
+            <ConfigCard title="AGENT_CORE">
+              {renderSystemPrompt()}
+              <Field label={`Max ReAct Steps: ${bc.agentSteps}`} hint="Prevents infinite reasoning loops.">
+                <input type="range" min={1} max={15} value={bc.agentSteps} onChange={(e) => setBc({...bc, agentSteps: Number(e.target.value)})}
+                  className="w-full accent-warning" />
+              </Field>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("AGENT_TOOLS") && (
+            <ConfigCard title="AGENT_TOOLS">
+              <Field label="Registered Sandboxed Tools">
+                <div className="flex flex-wrap gap-1 mt-1">
+                  <span className="pill bg-muted text-[10px] font-mono">knowledge_search</span>
+                  <span className="pill bg-muted text-[10px] font-mono">calculator</span>
+                  <span className="pill bg-muted text-[10px] font-mono">compliance_check</span>
+                </div>
+              </Field>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("AGENT_GUARDRAILS") && (
+            <ConfigCard title="AGENT_GUARDRAILS">
+              <Field label="Execution Timeout (Seconds)">
+                <select value={bc.agentTimeout} onChange={(e) => setBc({...bc, agentTimeout: Number(e.target.value)})} className={inputClass}>
+                  <option value={15}>15s (Strict)</option>
+                  <option value={30}>30s (Default)</option>
+                  <option value={60}>60s (Extended)</option>
+                </select>
+              </Field>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("AGENT_TRACE") && (
+            <ConfigCard title="AGENT_TRACE">
+              <Field label="Trajectory Storage">
+                 <select value={bc.agentTrace} onChange={(e) => setBc({...bc, agentTrace: e.target.value})} className={inputClass}>
+                  <option>Standard (OSFI Compliant)</option>
+                  <option>Verbose (Debug Mode)</option>
+                </select>
+              </Field>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("OBSERVE") && (
+            <ConfigCard title="OBSERVE">
+              <Field label="Telemetry Target">
+                <select value={bc.obsTarget} onChange={(e) => setBc({...bc, obsTarget: e.target.value})} className={inputClass}>
+                  <option>CloudWatch + MLflow</option>
+                  <option>CloudWatch Only</option>
+                </select>
+              </Field>
+            </ConfigCard>
+          )}
+
+          {finalBlockIds.includes("COST") && (
+            <ConfigCard title="COST">
+              <Field label="Monthly Alert Threshold (CAD $)">
+                <input type="number" value={bc.costAlert} onChange={(e) => setBc({...bc, costAlert: Number(e.target.value)})} className={inputClass} />
+              </Field>
+            </ConfigCard>
+          )}
+
+        </div>
+
+        <div className="shrink-0 pt-4 mt-4 border-t border-border flex flex-col gap-2">
           <button onClick={onNext}
-            className="px-4 py-2 rounded bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary-hover inline-flex items-center justify-center gap-1.5">
+            className="w-full py-2 rounded bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary-hover inline-flex items-center justify-center gap-1.5">
             Review & Deploy <ArrowRight className="h-3.5 w-3.5" />
           </button>
           <BackBtn onClick={onBack} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfigCard({ title, children }: { title: string, children: React.ReactNode }) {
+  return (
+    <div className="rounded border border-border bg-card overflow-hidden shadow-sm">
+      <div className="bg-muted/30 px-3 py-2 border-b border-border flex items-center gap-1.5">
+        <Settings2 className="h-3 w-3 text-muted-foreground" />
+        <span className="text-[10.5px] font-bold font-mono text-foreground">{title}</span>
+      </div>
+      <div className="p-3 space-y-3">
+        {children}
       </div>
     </div>
   );
@@ -482,7 +598,7 @@ function Field({ label, hint, children }: any) {
     <div>
       <div className="text-[11px] font-medium mb-1">{label}</div>
       {children}
-      {hint && <div className="text-[10.5px] text-muted-foreground mt-1">{hint}</div>}
+      {hint && <div className="text-[10.5px] text-muted-foreground mt-1.5 leading-snug">{hint}</div>}
     </div>
   );
 }
@@ -490,7 +606,7 @@ function Field({ label, hint, children }: any) {
 function BackBtn({ onClick, disabled }: any) {
   return (
     <button onClick={onClick} disabled={disabled}
-      className="px-4 py-2 rounded border border-border bg-card text-[13px] font-medium hover:bg-muted disabled:opacity-50">
+      className="w-full py-2 rounded border border-border bg-card text-[13px] font-medium hover:bg-muted disabled:opacity-50">
       ← Back
     </button>
   );
