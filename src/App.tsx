@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-// CHANGE 1: Import HashRouter instead of BrowserRouter
+// 1. Import HashRouter 
 import { HashRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,7 +21,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AppsProvider>
-        {/* CHANGE 2: Replace BrowserRouter with HashRouter */}
+        {/* 2. Use HashRouter (No basename required) */}
         <HashRouter>
           <Routes>
             <Route element={<PortalLayout />}>
