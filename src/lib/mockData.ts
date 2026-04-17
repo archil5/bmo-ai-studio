@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type Track = "llmops" | "agentops" | "mlops";
@@ -16,14 +15,10 @@ export interface UseCase {
   bankingExamples: string[];
   tags: string[];
 }
-=======
-export type PatternId = "P1" | "P2" | "P4" | "P5" | "P6" | "P7";
->>>>>>> a92641303693ce5422b8ea352008e2cdeb4d4156
 
 export interface BuildingBlock {
   id: string;
   name: string;
-<<<<<<< HEAD
   category:
     | "Foundation"
     | "Governance"
@@ -34,9 +29,6 @@ export interface BuildingBlock {
     | "AgentOps"
     | "Evaluation"
     | "Model Customization";
-=======
-  category: "Foundation" | "Governance" | "Operations" | "Prompt Management" | "Data & Retrieval" | "LLMOps" | "AgentOps" | "Evaluation" | "Model Customization";
->>>>>>> a92641303693ce5422b8ea352008e2cdeb4d4156
   required: boolean;
   description: string;
   awsServices: string[];
@@ -75,7 +67,6 @@ export interface ActivityRow {
 
 export const BUILDING_BLOCKS: BuildingBlock[] = [
   // Foundation
-<<<<<<< HEAD
   {
     id: "CORE",
     name: "CORE",
@@ -237,33 +228,6 @@ export const BUILDING_BLOCKS: BuildingBlock[] = [
       "Managed PEFT/LoRA fine-tuning jobs on Amazon Bedrock Custom Models. Creates strictly isolated, team-specific model weights.",
     requires: ["DATA_PREP", "EVAL_ENGINE", "MODEL"],
   },
-=======
-  { id: "CORE", name: "CORE", category: "Foundation", required: true, description: "Configuration management, structured logging, OSFI E-23 model registry, error handling, distributed cache." },
-  { id: "MODEL", name: "MODEL", category: "Foundation", required: true, description: "Amazon Bedrock invocation with mandatory Application Inference Profiles (AIPs) for cost attribution and guardrail enforcement.", requires: ["CORE"] },
-  
-  // Governance & Operations
-  { id: "GUARDRAILS", name: "GUARDRAILS", category: "Governance", required: true, description: "PII detection (8 entity types), prompt injection blocking (5 attack categories), configurable profiles (Public / Internal / Confidential).", requires: ["MODEL"] },
-  { id: "OBSERVE", name: "OBSERVE", category: "Operations", required: true, description: "End-to-end request tracing, Amazon CloudWatch metrics emission, SageMaker MLflow experiment logging.", requires: ["CORE"] },
-  { id: "COST", name: "COST", category: "Operations", required: true, description: "Real-time token counting, per-model pricing, per-team cost attribution with CloudWatch cost alarms.", requires: ["MODEL"] },
-  
-  // Prompt Management
-  { id: "PROMPT_HUB", name: "PROMPT HUB", category: "Prompt Management", required: false, description: "Centralized, version-controlled prompt registry. Enables A/B testing, dynamic injection, and mandatory compliance approval workflows.", requires: ["CORE"] },
-  
-  // Data & Retrieval
-  { id: "VECTORSTORE", name: "VECTORSTORE", category: "Data & Retrieval", required: false, description: "Amazon OpenSearch Serverless client, Titan Embeddings v2 integration, kNN semantic search, document ingestion pipeline.", requires: ["CORE"] },
-  
-  // LLMOps & AgentOps
-  { id: "PIPELINE", name: "PIPELINE", category: "LLMOps", required: false, description: "RAG pipeline orchestration with developer hook system (pre_query, post_retrieval, post_response). Deterministic, 1 LLM call per request.", requires: ["MODEL", "GUARDRAILS"] },
-  { id: "AGENT_CORE", name: "AGENT CORE", category: "AgentOps", required: false, description: "ReAct (Reason + Act) autonomous reasoning loop. Non-deterministic, 3–15+ LLM calls per request. Extends LLMOps layer.", requires: ["MODEL", "GUARDRAILS"] },
-  { id: "AGENT_TOOLS", name: "AGENT TOOLS", category: "AgentOps", required: false, description: "Tool registry with permission scoping, sandboxed executor, 3 built-in tools: knowledge_search, calculator, compliance_check.", requires: ["AGENT_CORE"] },
-  { id: "AGENT_GUARDRAILS", name: "AGENT GUARDRAILS", category: "AgentOps", required: false, description: "Token budget enforcement, action boundary policies, emergency kill switch, step-count limits to prevent runaway agents.", requires: ["AGENT_CORE"] },
-  { id: "AGENT_TRACE", name: "AGENT TRACE", category: "AgentOps", required: false, description: "Full agent trajectory logging — every ReAct step, tool call, and reasoning trace captured for OSFI audit trail.", requires: ["AGENT_CORE", "OBSERVE"] },
-
-  // Evaluation & Customization
-  { id: "EVAL_ENGINE", name: "EVAL ENGINE", category: "Evaluation", required: false, description: "Automated offline & online evaluation suite. Runs RAGAS metrics (faithfulness, answer relevance), LLM-as-a-judge, and shadow testing.", requires: ["OBSERVE", "MODEL"] },
-  { id: "DATA_PREP", name: "DATA PREP", category: "Model Customization", required: false, description: "Dataset curation pipeline. Auto-generates synthetic data, formats to JSONL, and enforces mandatory PII scrubbing before training.", requires: ["CORE", "GUARDRAILS"] },
-  { id: "FINE_TUNER", name: "FINE TUNER", category: "Model Customization", required: false, description: "Managed PEFT/LoRA fine-tuning jobs on Amazon Bedrock Custom Models. Creates strictly isolated, team-specific model weights.", requires: ["DATA_PREP", "EVAL_ENGINE", "MODEL"] },
->>>>>>> a92641303693ce5422b8ea352008e2cdeb4d4156
 ];
 
 export const REQUIRED_BLOCK_IDS = BUILDING_BLOCKS.filter((b) => b.required).map((b) => b.id);
@@ -573,25 +537,6 @@ export const GUARDRAIL_PROFILES = [
   { id: "Confidential", label: "Confidential (OSFI Restricted)" },
 ];
 
-export interface DeployedApp {
-  id: string;
-  name: string;
-  team: string;
-  blockIds: string[];
-  model: string;
-  modelLabel: string;
-  guardrailProfile: string;
-  systemPrompt?: string;
-  topK?: number;
-  status: "Active";
-  invocations: number;
-  avgLatencyMs: number;
-  totalCost: number;
-}
-
-export const isAgentApp = (app: Pick<DeployedApp, "blockIds">) => app.blockIds.includes("AGENT_CORE");
-export const isRagApp = (app: Pick<DeployedApp, "blockIds">) => app.blockIds.includes("VECTORSTORE");
-
 export const INITIAL_APPS: DeployedApp[] = [
   {
     id: "app-001",
@@ -683,11 +628,7 @@ export const RECENT_ACTIVITY: ActivityRow[] = [
   { ts: "2025-04-16 09:08:02", app: "doc-extractor", team: "Capital Markets", query: "Summarize risk factors in Q4 2024 BMO annual report filing", composition: "Pipeline · 7 blocks", latencyMs: 1987, tokens: 3402, status: "Success" },
 ];
 
-<<<<<<< HEAD
 export const patternAccentClass = (id: string) => {
-=======
-export const patternAccentClass = (id: PatternId) => {
->>>>>>> a92641303693ce5422b8ea352008e2cdeb4d4156
   switch (id) {
     case "P1": return { text: "text-pattern-p1", bg: "bg-pattern-p1", border: "border-pattern-p1", soft: "bg-[hsl(var(--pattern-p1)/0.08)]" };
     case "P2": return { text: "text-pattern-p2", bg: "bg-pattern-p2", border: "border-pattern-p2", soft: "bg-[hsl(var(--pattern-p2)/0.08)]" };
