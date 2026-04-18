@@ -371,3 +371,20 @@ export const isAgentApp = (app: Pick<DeployedApp, "blockIds">) => app.blockIds.i
 export const isRagApp   = (app: Pick<DeployedApp, "blockIds">) => app.blockIds.includes("VECTORSTORE");
 export const isMLOpsApp = (app: Pick<DeployedApp, "blockIds">) =>
   app.blockIds.some((id) => ["FINE_TUNER", "EVAL_ENGINE", "DATA_PREP"].includes(id));
+
+// ─── PatternBadge compatibility exports ───────────────────────────────────────
+export type PatternId = "P1" | "P2" | "P4" | "P5";
+
+export const patternAccentClass = (id: PatternId) => {
+  switch (id) {
+    case "P1": return { text: "text-[hsl(var(--pattern-p1))]", bg: "bg-primary", border: "border-primary", soft: "bg-info-soft" };
+    case "P2": return { text: "text-[hsl(var(--pattern-p2))]", bg: "bg-[hsl(var(--pattern-p2))]", border: "border-[hsl(var(--pattern-p2))]", soft: "bg-[hsl(var(--pattern-p2)/0.08)]" };
+    case "P4": return { text: "text-pattern-p4", bg: "bg-pattern-p4", border: "border-pattern-p4", soft: "bg-success-soft" };
+    case "P5": return { text: "text-[hsl(var(--pattern-p5))]", bg: "bg-[hsl(var(--pattern-p5))]", border: "border-[hsl(var(--pattern-p5))]", soft: "bg-[hsl(var(--pattern-p5)/0.08)]" };
+    default:   return { text: "text-primary", bg: "bg-primary", border: "border-primary", soft: "bg-info-soft" };
+  }
+};
+
+export function getUseCaseById(id: string): UseCase | undefined {
+  return USE_CASES.find((u) => u.id === id);
+}
