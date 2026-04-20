@@ -18,7 +18,7 @@ export function TopBar() {
   return (
     <header className="h-12 border-b border-border bg-card flex items-center justify-between px-5 shrink-0">
       <nav className="flex items-center gap-1.5 text-[13px]">
-        <Link to="/" className="text-muted-foreground hover:text-foreground">BMO</Link>
+        <Link to="/" className="text-muted-foreground hover:text-foreground">Platform</Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
         <Link to="/" className="text-muted-foreground hover:text-foreground">AI Developer Portal</Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
