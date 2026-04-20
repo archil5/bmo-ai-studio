@@ -24,7 +24,7 @@ export function PortalSidebar() {
     <aside className="w-60 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
       <div className="px-4 py-4 border-b border-sidebar-border flex items-center gap-2.5">
         <div className="w-8 h-8 rounded bg-white text-navy font-bold flex items-center justify-center text-sm tracking-tight">
-          BMO
+          AI
         </div>
         <div className="leading-tight">
           <div className="text-[13px] font-semibold text-white">AI Developer Portal</div>
