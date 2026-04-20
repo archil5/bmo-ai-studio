@@ -70,8 +70,8 @@ export function PortalSidebar() {
             AP
           </div>
           <div className="leading-tight min-w-0">
-            <div className="text-[12px] font-medium text-white truncate">Archil Patel</div>
-            <div className="text-[10px] text-sidebar-foreground/70 truncate">Principal Cloud Engineer</div>
+            <div className="text-[12px] font-medium text-white truncate">Alex Morgan</div>
+            <div className="text-[10px] text-sidebar-foreground/70 truncate">Platform Engineer</div>
           </div>
         </div>
         <div className="flex items-center justify-between px-2 py-1.5 rounded bg-sidebar-accent/50 border border-sidebar-border">

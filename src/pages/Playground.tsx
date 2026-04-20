@@ -27,7 +27,7 @@ const INITIAL_MESSAGES: Message[] = [
   {
     role: "assistant",
     content:
-      "Based on retrieved documents from the BMO risk knowledge base: Equity derivative margin requirements under OSFI E-23 guideline B-7 require initial margin of 8–12% of notional value depending on counterparty credit rating. Variation margin is settled daily via VM-CSA. For investment-grade counterparties (≥BBB-), the 8% floor applies; sub-investment grade requires 12% plus a 2% liquidity add-on. [trace_id: abc-1234]",
+      "Based on retrieved documents from the enterprise risk knowledge base: Equity derivative margin requirements under OSFI E-23 guideline B-7 require initial margin of 8–12% of notional value depending on counterparty credit rating. Variation margin is settled daily via VM-CSA. For investment-grade counterparties (≥BBB-), the 8% floor applies; sub-investment grade requires 12% plus a 2% liquidity add-on. [trace_id: abc-1234]",
   },
 ];
 
@@ -51,9 +51,9 @@ function detectBlock(text: string): { blocked: boolean; kind?: "PII" | "Injectio
 
 function mockResponse(q: string, app: any): string {
   const variants = [
-    `Based on retrieved BMO knowledge base documents and ${app?.modelLabel ?? "Claude 3.7 Sonnet"} reasoning: ${q.slice(0, 60)}... Per OSFI Guideline E-23, internal model risk policies require validation evidence for all consumer-facing decisions. Recommended action: route to human reviewer if confidence < 0.85. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
-    `Retrieved 5 relevant chunks from osfi-e23-guidelines-2024.pdf and bmo-risk-framework-v3.pdf. Summary: BMO policy requires capital adequacy ratio above 10.5% Tier 1 plus a 2.5% conservation buffer. Counterparty exposures are netted under ISDA master agreements where enforceable. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
-    `Per BMO Compliance Framework v3.2: this query falls under category "Internal Risk Inquiry". Response grounded in 3 retrieved documents. No PII detected, no policy violations. Audit trace persisted to MLflow. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
+    `Based on retrieved enterprise knowledge base documents and ${app?.modelLabel ?? "Claude 3.7 Sonnet"} reasoning: ${q.slice(0, 60)}... Per OSFI Guideline E-23, internal model risk policies require validation evidence for all consumer-facing decisions. Recommended action: route to human reviewer if confidence < 0.85. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
+    `Retrieved 5 relevant chunks from osfi-e23-guidelines-2024.pdf and risk-framework-v3.pdf. Summary: Enterprise policy requires capital adequacy ratio above 10.5% Tier 1 plus a 2.5% conservation buffer. Counterparty exposures are netted under ISDA master agreements where enforceable. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
+    `Per Enterprise Compliance Framework v3.2: this query falls under category "Internal Risk Inquiry". Response grounded in 3 retrieved documents. No PII detected, no policy violations. Audit trace persisted to MLflow. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
   ];
   return variants[Math.floor(Math.random() * variants.length)];
 }
@@ -236,8 +236,8 @@ export default function Playground() {
                 <div className="mt-2 space-y-2">
                   <ContextChunk source="osfi-e23-guidelines-2024.pdf" chunk="47" score={0.892}
                     text="Section 4.2: Initial margin requirements for equity derivative positions held by federally regulated financial institutions shall be no less than 8% of notional value..." />
-                  <ContextChunk source="bmo-risk-framework-v3.pdf" chunk="12" score={0.847}
-                    text="BMO internal policy mandates a 2% liquidity surcharge on all sub-investment-grade counterparty exposures, calculated daily and posted to VM-CSA..." />
+                  <ContextChunk source="risk-framework-v3.pdf" chunk="12" score={0.847}
+                    text="Enterprise internal policy mandates a 2% liquidity surcharge on all sub-investment-grade counterparty exposures, calculated daily and posted to VM-CSA..." />
                 </div>
               )}
             </div>
