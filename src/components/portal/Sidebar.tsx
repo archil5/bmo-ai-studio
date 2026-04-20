@@ -24,7 +24,7 @@ export function PortalSidebar() {
     <aside className="w-60 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
       <div className="px-4 py-4 border-b border-sidebar-border flex items-center gap-2.5">
         <div className="w-8 h-8 rounded bg-white text-navy font-bold flex items-center justify-center text-sm tracking-tight">
-          BMO
+          AI
         </div>
         <div className="leading-tight">
           <div className="text-[13px] font-semibold text-white">AI Developer Portal</div>
@@ -70,8 +70,8 @@ export function PortalSidebar() {
             AP
           </div>
           <div className="leading-tight min-w-0">
-            <div className="text-[12px] font-medium text-white truncate">Archil Patel</div>
-            <div className="text-[10px] text-sidebar-foreground/70 truncate">Principal Cloud Engineer</div>
+            <div className="text-[12px] font-medium text-white truncate">Alex Morgan</div>
+            <div className="text-[10px] text-sidebar-foreground/70 truncate">Platform Engineer</div>
           </div>
         </div>
         <div className="flex items-center justify-between px-2 py-1.5 rounded bg-sidebar-accent/50 border border-sidebar-border">

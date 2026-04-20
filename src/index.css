@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BMO AI Developer Portal — Design System
+/* AI Developer Portal — Design System
    All colors HSL. Production AWS-console aesthetic. */
 
 @layer base {
@@ -19,12 +19,12 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 30% 12%;
 
-    /* BMO Blue #0079C1 */
+    /* Brand Blue #0079C1 */
     --primary: 202 100% 38%;
     --primary-foreground: 0 0% 100%;
     --primary-hover: 202 100% 32%;
 
-    /* BMO Dark Navy #003D6B */
+    /* Brand Dark Navy #003D6B */
     --navy: 207 100% 21%;
     --navy-foreground: 0 0% 100%;
 
