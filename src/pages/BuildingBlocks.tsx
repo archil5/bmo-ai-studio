@@ -21,6 +21,7 @@ const CATEGORY_ICON: Record<string, any> = {
   AgentOps: Bot,
   Evaluation: TestTube,
   "Model Customization": Cpu,
+  "MLOps": Cpu,
 };
 
 const CATEGORY_COLOR: Record<string, string> = {
@@ -33,6 +34,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   AgentOps: "bg-[hsl(var(--pattern-p5)/0.1)] text-pattern-p5 border-pattern-p5/30",
   Evaluation: "bg-success-soft text-success border-success/30",
   "Model Customization": "bg-success-soft text-success border-success/30",
+  "MLOps": "bg-success-soft text-success border-success/30", 
 };
 
 type FilterMode = "category" | "usecase";
