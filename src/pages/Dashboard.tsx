@@ -53,7 +53,7 @@ export default function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
-        subtitle="Real-time view of LLMOps, AgentOps, and MLOps activity across all deployed enterprise applications."
+        subtitle="Real-time view of LLMOps, AgentOps, and MLOps activity across all deployed BMO applications."
       />
 
       {/* Top metrics */}
