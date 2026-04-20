@@ -47,7 +47,7 @@ export default function BuildingBlocks() {
 
   // Compute which blocks are highlighted based on the selected use case
   const highlightedIds: Set<string> = selectedUC
-    ? new Set(expandWithDependencies(USE_CASES.find((u) => u.id === selectedUC)?.blockIds || []))
+    ? new Set(expandWithDependencies(USE_CASES.find((u) => u.id === selectedUC)?.recommendedBlocks || []))
     : new Set();
 
   const visibleBlocks = filterMode === "category" && selectedCat !== "All"
@@ -131,7 +131,7 @@ export default function BuildingBlocks() {
                       <span className="font-mono text-[10px] opacity-60 mr-1">{uc.id}</span>
                       {uc.name}
                       <span className="ml-1.5 opacity-60">
-                        ({expandWithDependencies(uc.blockIds).length} blocks)
+                        ({expandWithDependencies(uc.recommendedBlocks).length} blocks)
                       </span>
                     </button>
                   ))}
@@ -186,7 +186,7 @@ export default function BuildingBlocks() {
 
           // Which use cases include this block?
           const usedIn = USE_CASES.filter((uc) =>
-            expandWithDependencies(uc.blockIds).includes(b.id)
+            expandWithDependencies(uc.recommendedBlocks).includes(b.id)
           );
 
           return (
