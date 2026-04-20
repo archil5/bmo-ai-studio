@@ -332,7 +332,7 @@ function StepCompose({
                   {finalBlockIds.length} blocks · {isAgent ? "Agent" : "Pipeline"} mode
                 </span>
               </div>
-              <ArchDiagram blockIds={finalBlockIds} />
+              <ArchDiagram ucId={selectedUCId} blockIds={finalBlockIds} />
             </div>
 
             {isAgent && (
