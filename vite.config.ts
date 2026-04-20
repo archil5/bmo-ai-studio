@@ -4,7 +4,7 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/bmo-ai-studio/",
+  base: process.env.GITHUB_PAGES ? "/bmo-ai-studio/" : "/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
