@@ -1,133 +1,157 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/portal/PageHeader";
-import {
-  USE_CASES, TRACK_META, COMPLEXITY_COLOR,
-  expandWithDependencies, type Track, type UseCase,
-} from "@/lib/mockData";
-import { cn } from "@/lib/utils";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, GitBranch, Layers3, Sparkles } from "lucide-react";
 
-const TRACKS: (Track | "all")[] = ["all", "llmops", "agentops", "mlops"];
+const POSITIONING = [
+  {
+    title: "Reference use cases are starter kits",
+    body: "They come from domain-informed design work and should be adapted by 15–25% based on production findings — not rebuilt from scratch.",
+  },
+  {
+    title: "Patterns are the real operating unit",
+    body: "Each cell validates patterns, while use cases supply acceptance criteria, domain context, and proof that a pattern is reusable.",
+  },
+  {
+    title: "The portal should accelerate matching",
+    body: "The target user journey is: business problem → CoE match → validated pattern → starter kit → domain adaptation.",
+  },
+];
+
+const CELL_ASSIGNMENTS = [
+  {
+    cell: "Cell 1",
+    pattern: "PAT-GENAI-CAI",
+    focus: "Conversational AI starter kits",
+    sampleUseCases: ["Customer service virtual assistant", "Capital markets trading assistant"],
+  },
+  {
+    cell: "Cell 2",
+    pattern: "PAT-GENAI-DOC",
+    focus: "Document intelligence and extraction",
+    sampleUseCases: ["Document review assistant", "Policy summarization and classification"],
+  },
+  {
+    cell: "Cell 3",
+    pattern: "PAT-ML-ANA",
+    focus: "ML analytics and decision support",
+    sampleUseCases: ["Credit risk modeling", "Financial forecasting"],
+  },
+  {
+    cell: "Cell 4",
+    pattern: "PAT-AGENT-WFO",
+    focus: "Workflow and agent orchestration",
+    sampleUseCases: ["Compliance workflow agent", "Operational triage and actioning"],
+  },
+];
+
+const PATTERN_BANDS = [
+  { band: "Sprint 1", detail: "6 horizontal capabilities at MVP plus the highest-leverage starter kits", emphasis: "61% of all use cases covered" },
+  { band: "Sprint 2", detail: "Expand pattern validation after horizontal capability integration checks", emphasis: "Reuse portal controls built in Sprint 1" },
+  { band: "Sprint 3", detail: "Scale validated patterns into broader domain packs", emphasis: "Drive adoption through the CoE matching model" },
+  { band: "Sprint 4", detail: "Close the remaining pattern gaps and publish permanent ownership", emphasis: "Portal becomes the record of approved patterns" },
+];
 
 export default function UseCases() {
-  const navigate = useNavigate();
-  const [activeTrack, setActiveTrack] = useState<Track | "all">("all");
-
-  const visible = activeTrack === "all"
-    ? USE_CASES
-    : USE_CASES.filter((u) => u.track === activeTrack);
-
   return (
     <>
       <PageHeader
-        title="Use Case Catalog"
-        subtitle="4 production-validated use cases, each with a pre-configured block composition and real-world AWS architecture. Select one to start building — or skip to compose custom."
+        title="Reference Use Cases"
+        subtitle="This view should frame the 153 use cases as reusable starter kits that map business problems to validated patterns, not as bespoke requests waiting for custom development."
       />
 
-      {/* Track filter */}
-      <div className="flex items-center gap-2 mb-6">
-        {TRACKS.map((t) => {
-          const count = t === "all" ? USE_CASES.length : USE_CASES.filter((u) => u.track === t).length;
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {POSITIONING.map((item, index) => {
+          const Icon = index === 0 ? Layers3 : index === 1 ? GitBranch : Sparkles;
           return (
-            <button
-              key={t}
-              onClick={() => setActiveTrack(t)}
-              className={cn(
-                "px-3 py-1.5 rounded-full border text-[12px] font-medium transition-all",
-                activeTrack === t
-                  ? "bg-navy text-white border-navy"
-                  : "bg-card border-border text-foreground hover:bg-muted"
-              )}
-            >
-              {t === "all" ? "All" : TRACK_META[t].label}
-              <span className="ml-1.5 opacity-60">({count})</span>
-            </button>
+            <section key={item.title} className="panel p-4">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-muted text-foreground">
+                <Icon className="h-4 w-4" />
+              </div>
+              <h2 className="text-[14px] font-semibold">{item.title}</h2>
+              <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{item.body}</p>
+            </section>
           );
         })}
-        <button
-          onClick={() => navigate("/create")}
-          className="ml-auto px-3 py-1.5 rounded border border-border bg-card text-[12px] font-medium hover:bg-muted inline-flex items-center gap-1.5"
-        >
-          Compose Custom <ArrowRight className="h-3 w-3" />
-        </button>
       </div>
 
-      {/* 2-column grid — cards are detailed */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {visible.map((uc) => <UCCard key={uc.id} uc={uc} onSelect={() => navigate("/create", { state: { useCaseId: uc.id } })} />)}
-      </div>
-
-      <div className="mt-6 panel p-4 bg-info-soft/40 border-primary/30">
-        <div className="text-[12px] font-semibold text-primary mb-1">
-          All use cases are governed by the platform — you configure, the platform enforces.
-        </div>
-        <div className="text-[11px] text-muted-foreground leading-relaxed">
-          OSFI E-23 compliance, Application Inference Profiles, PII detection, injection blocking, per-team cost attribution, and audit logging are active on every request regardless of use case. Your team controls: IAM roles, KMS keys, service endpoints, model selection, and application parameters.
-        </div>
-      </div>
-    </>
-  );
-}
-
-function UCCard({ uc, onSelect }: { uc: UseCase; onSelect: () => void }) {
-  const meta = TRACK_META[uc.track];
-  const totalBlocks = expandWithDependencies(uc.recommendedBlocks).length;
-
-  return (
-    <div className="panel flex flex-col">
-      {/* Track accent */}
-      <div className={cn("h-1 rounded-t-md", {
-        "bg-primary":    uc.track === "llmops",
-        "bg-pattern-p5": uc.track === "agentops",
-        "bg-success":    uc.track === "mlops",
-      })} />
-
-      <div className="p-5 flex flex-col flex-1">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
+      <section className="panel mt-6 overflow-hidden">
+        <div className="panel-header">
           <div>
-            <div className={cn("text-[10px] font-bold uppercase tracking-widest mb-1", meta.color)}>
-              {meta.label}
-            </div>
-            <div className="text-[10px] font-mono text-muted-foreground mb-0.5">{uc.id}</div>
-            <h3 className="text-[16px] font-semibold">{uc.name}</h3>
+            <h2 className="text-[14px] font-semibold">Illustrative Sprint 1 validation mapping</h2>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Leadership should immediately see how cells, patterns, and reference packs line up.
+            </p>
           </div>
-          <span className={cn("pill text-[10px] shrink-0 mt-1", COMPLEXITY_COLOR[uc.complexity])}>
-            {uc.complexity}
-          </span>
+          <span className="pill bg-info-soft border-primary/30 text-primary">4 parallel cells</span>
+        </div>
+        <div className="grid grid-cols-1 gap-px bg-border lg:grid-cols-2">
+          {CELL_ASSIGNMENTS.map((item) => (
+            <div key={item.cell} className="bg-card p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{item.cell}</div>
+                  <h3 className="mt-1 text-[16px] font-semibold">{item.pattern}</h3>
+                  <p className="mt-1 text-[12px] text-muted-foreground">{item.focus}</p>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-foreground">
+                  <BriefcaseBusiness className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="mt-4 space-y-2">
+                {item.sampleUseCases.map((sample) => (
+                  <div key={sample} className="flex items-start gap-2 rounded border border-border bg-muted/30 px-3 py-2">
+                    <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span className="text-[12px] text-muted-foreground">{sample}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h2 className="text-[14px] font-semibold">Adoption motion</h2>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                The use-case catalog only matters if it becomes a matching and adoption engine.
+              </p>
+            </div>
+          </div>
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+              {[
+                "LOB business problem submitted",
+                "CoE maps to validated pattern",
+                "Starter kit generated from portal",
+                "LOB adapts and owns production rollout",
+              ].map((step, index) => (
+                <div key={step} className="rounded border border-border bg-muted/20 p-3">
+                  <div className="text-[10px] font-mono text-muted-foreground">0{index + 1}</div>
+                  <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <p className="text-[12px] text-muted-foreground leading-relaxed mb-4">{uc.description}</p>
-
-        {/* Block summary */}
-        <div className="flex items-center gap-2 mb-4 p-2.5 rounded bg-muted/40 border border-border">
-          <span className="text-[11px] text-muted-foreground">Recommended composition:</span>
-          <span className="text-[11px] font-semibold text-foreground font-mono">{totalBlocks} blocks</span>
-          <span className="text-[10px] text-muted-foreground ml-auto">(adjustable on next step)</span>
-        </div>
-
-        {/* Banking examples */}
-        <div className="mb-5">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Banking examples</div>
-          <ul className="space-y-1.5">
-            {uc.bankingExamples.map((ex, i) => (
-              <li key={i} className="flex items-start gap-1.5 text-[12px] text-muted-foreground">
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-40" />
-                {ex}
-              </li>
+        <div className="panel p-4">
+          <h2 className="text-[14px] font-semibold">Validation cadence</h2>
+          <div className="mt-3 space-y-2">
+            {PATTERN_BANDS.map((item) => (
+              <div key={item.band} className="rounded border border-border bg-muted/20 px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[12px] font-semibold text-foreground">{item.band}</span>
+                  <span className="pill bg-card border-border text-muted-foreground">Pattern cycle</span>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{item.detail}</p>
+                <div className="mt-2 text-[11px] font-medium text-primary">{item.emphasis}</div>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
-
-        {/* CTA */}
-        <button
-          onClick={onSelect}
-          className="mt-auto w-full py-2.5 rounded bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary-hover flex items-center justify-center gap-1.5 transition-colors"
-        >
-          Build with this use case <ArrowRight className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </div>
+      </section>
+    </>
   );
 }
