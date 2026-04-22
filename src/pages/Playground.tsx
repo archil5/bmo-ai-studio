@@ -1,373 +1,244 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/portal/PageHeader";
 import { useApps } from "@/context/AppsContext";
-import { isAgentApp } from "@/lib/mockData";
-import { Send, ShieldCheck, ShieldAlert, ChevronDown, ChevronRight, FileText, Cpu, Clock, Coins, Database } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-type Mode = "pipeline" | "agent" | "compare";
+import { 
+  ShieldAlert, ShieldCheck, Terminal, Send, AlertTriangle, 
+  Fingerprint, Activity, StopCircle, Lock
+} from "lucide-react";
 
 interface Message {
-  role: "user" | "assistant" | "blocked";
+  id: string;
+  role: "user" | "assistant" | "system";
   content: string;
-  blockedReason?: string;
-  blockedKind?: "PII" | "Injection";
-}
-
-interface Telemetry {
-  cost: number; latencyMs: number; inTokens: number; outTokens: number;
-  guardrails: { pii: boolean; injection: boolean; output: boolean; reason?: string };
-  agentSteps?: number;
-  agentCost?: number; agentTokens?: number;
-}
-
-const INITIAL_MESSAGES: Message[] = [
-  { role: "user", content: "What are the current margin requirements for equity derivatives under OSFI E-23?" },
-  {
-    role: "assistant",
-    content:
-      "Based on retrieved documents from the enterprise risk knowledge base: Equity derivative margin requirements under OSFI E-23 guideline B-7 require initial margin of 8–12% of notional value depending on counterparty credit rating. Variation margin is settled daily via VM-CSA. For investment-grade counterparties (≥BBB-), the 8% floor applies; sub-investment grade requires 12% plus a 2% liquidity add-on. [trace_id: abc-1234]",
-  },
-];
-
-const INITIAL_TELEMETRY: Telemetry = {
-  cost: 0.0042, latencyMs: 1243, inTokens: 1847, outTokens: 312,
-  guardrails: { pii: true, injection: true, output: true },
-};
-
-const SIN_REGEX = /\b\d{3}-?\d{3}-?\d{3}\b/;
-
-function detectBlock(text: string): { blocked: boolean; kind?: "PII" | "Injection"; reason?: string } {
-  const lower = text.toLowerCase();
-  if (lower.includes("ignore previous") || lower.includes("ignore prior")) {
-    return { blocked: true, kind: "Injection", reason: "Prompt injection pattern detected (instruction override)" };
-  }
-  if (lower.includes("sin") || lower.includes("ssn") || SIN_REGEX.test(text)) {
-    return { blocked: true, kind: "PII", reason: "SIN/SSN pattern detected — request blocked before invocation" };
-  }
-  return { blocked: false };
-}
-
-function mockResponse(q: string, app: any): string {
-  const variants = [
-    `Based on retrieved enterprise knowledge base documents and ${app?.modelLabel ?? "Claude 3.7 Sonnet"} reasoning: ${q.slice(0, 60)}... Per OSFI Guideline E-23, internal model risk policies require validation evidence for all consumer-facing decisions. Recommended action: route to human reviewer if confidence < 0.85. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
-    `Retrieved 5 relevant chunks from osfi-e23-guidelines-2024.pdf and risk-framework-v3.pdf. Summary: Enterprise policy requires capital adequacy ratio above 10.5% Tier 1 plus a 2.5% conservation buffer. Counterparty exposures are netted under ISDA master agreements where enforceable. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
-    `Per Enterprise Compliance Framework v3.2: this query falls under category "Internal Risk Inquiry". Response grounded in 3 retrieved documents. No PII detected, no policy violations. Audit trace persisted to MLflow. [trace_id: ${Math.random().toString(36).slice(2, 8)}]`,
-  ];
-  return variants[Math.floor(Math.random() * variants.length)];
+  type?: "standard" | "intercept" | "kill-switch" | "trace";
 }
 
 export default function Playground() {
-  const [params] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const appId = searchParams.get("app");
   const { apps } = useApps();
-  const presetApp = params.get("app");
-  const [appId, setAppId] = useState(presetApp ?? apps[0]?.id ?? "");
-  useEffect(() => { if (presetApp) setAppId(presetApp); }, [presetApp]);
+  
+  const app = apps.find(a => a.id === appId) || apps[0];
+  const isAgent = app?.blockIds.includes("AGENT_CORE");
 
-  const app = useMemo(() => apps.find((a) => a.id === appId) ?? apps[0], [apps, appId]);
-
-  const [mode, setMode] = useState<Mode>("pipeline");
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [telemetry, setTelemetry] = useState<Telemetry>(INITIAL_TELEMETRY);
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [showContext, setShowContext] = useState(true);
-  const threadRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      role: "system",
+      content: `Connected to ${app?.name || "Global Testing Sandbox"}. OSFI E-23 Guardrails ACTIVE. Target: AWS Bedrock Enterprise Profile.`,
+      type: "trace"
+    }
+  ]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom
   useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, sending]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  const send = async () => {
-    if (!input.trim() || sending) return;
-    const text = input.trim();
+  const handleSimulate = async () => {
+    if (!input.trim() || isProcessing) return;
+
+    const userMsg: Message = { id: Date.now().toString(), role: "user", content: input };
+    setMessages(prev => [...prev, userMsg]);
     setInput("");
-    setMessages((m) => [...m, { role: "user", content: text }]);
+    setIsProcessing(true);
 
-    const block = detectBlock(text);
-    if (block.blocked) {
-      await new Promise((r) => setTimeout(r, 250));
-      setMessages((m) => [...m, { role: "blocked", content: "⚠ Request blocked by guardrails", blockedReason: block.reason, blockedKind: block.kind }]);
-      setTelemetry({
-        cost: 0, latencyMs: 38, inTokens: 0, outTokens: 0,
-        guardrails: {
-          pii: block.kind !== "PII", injection: block.kind !== "Injection", output: true,
-          reason: block.reason,
-        },
-      });
+    // 1. PII & Data Leakage Intercept Simulation
+    const lowerInput = userMsg.content.toLowerCase();
+    if (lowerInput.match(/\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/)) { // Mock SIN regex
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: "system",
+          type: "intercept",
+          content: "[GUARDRAIL INTERCEPT] PII detected (Social Insurance Number). Request blocked before LLM transmission. Incident logged to Security Hub."
+        }]);
+        setIsProcessing(false);
+      }, 600);
       return;
     }
 
-    setSending(true);
-    await new Promise((r) => setTimeout(r, 900 + Math.random() * 800));
-    const reply = mockResponse(text, app);
-    setMessages((m) => [...m, { role: "assistant", content: reply }]);
+    // 2. Prompt Injection Intercept Simulation
+    if (lowerInput.includes("ignore previous") || lowerInput.includes("system prompt")) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: "system",
+          type: "intercept",
+          content: "[GUARDRAIL INTERCEPT] Malicious intent detected (Prompt Injection Attack). Request blocked. Confidence: 0.98."
+        }]);
+        setIsProcessing(false);
+      }, 600);
+      return;
+    }
 
-    const inTok = 1500 + Math.floor(Math.random() * 800);
-    const outTok = 200 + Math.floor(Math.random() * 250);
-    const cost = ((inTok * 0.000003) + (outTok * 0.000015));
-    const latency = 800 + Math.floor(Math.random() * 1500);
-    const isAgent = (app && isAgentApp(app)) || mode !== "pipeline";
+    // 3. Agentic Runaway Loop (Kill-Switch) Simulation
+    if (isAgent && (lowerInput.includes("research") || lowerInput.includes("calculate"))) {
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: "system", type: "trace", content: "ReAct Loop Started. Step 1: Tool [WebSearch] dispatched..." }]);
+      
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: "system", type: "trace", content: "ReAct Loop Step 2: Tool [DataCalculator] dispatched..." }]);
+      }, 1200);
 
-    setTelemetry({
-      cost, latencyMs: latency, inTokens: inTok, outTokens: outTok,
-      guardrails: { pii: true, injection: true, output: true },
-      agentSteps: isAgent ? 7 : undefined,
-      agentCost: isAgent ? cost * 4.2 : undefined,
-      agentTokens: isAgent ? (inTok + outTok) * 4 : undefined,
-    });
-    setSending(false);
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: "system", type: "trace", content: "ReAct Loop Step 3: Tool [WebSearch] dispatched..." }]);
+      }, 2400);
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: "system",
+          type: "kill-switch",
+          content: "[AGENT GUARDRAIL] Maximum iteration depth reached (Token Budget Exceeded). ReAct loop forcefully terminated to prevent runaway API costs."
+        }]);
+        setIsProcessing(false);
+      }, 3600);
+      return;
+    }
+
+    // 4. Standard Response
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: "assistant",
+        type: "standard",
+        content: "Request processed successfully. No policy violations detected."
+      }]);
+      setIsProcessing(false);
+    }, 1000);
   };
 
-  if (!app) {
-    return (
-      <>
-        <PageHeader title="Playground" subtitle="No deployed applications yet." />
-        <div className="panel p-8 text-center text-muted-foreground">Deploy an application first.</div>
-      </>
-    );
-  }
-
   return (
-    <>
+    <div className="flex flex-col h-[calc(100vh-100px)]">
       <PageHeader
-        title="Playground"
-        subtitle="Interactively test deployed applications. All requests pass through production guardrails."
-        actions={
-          <>
-            <select value={appId} onChange={(e) => setAppId(e.target.value)}
-              className="px-3 py-1.5 border border-border rounded text-[12.5px] bg-card font-mono">
-              {apps.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-            <div className="flex border border-border rounded overflow-hidden text-[12px]">
-              {(["pipeline", "agent", "compare"] as Mode[]).map((m) => (
-                <button key={m} onClick={() => setMode(m)}
-                  className={cn("px-3 py-1.5 capitalize", mode === m ? "bg-navy text-white" : "bg-card hover:bg-muted")}>
-                  {m === "compare" ? "Compare Both" : `${m} Mode`}
-                </button>
-              ))}
-            </div>
-          </>
-        }
+        title="Guardrail Penetration Testing"
+        subtitle="Validate AWS Bedrock safety profiles, PII redaction, and agent kill-switches before production deployment."
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-[calc(100vh-180px)]">
-        {/* CHAT */}
-        <div className="panel flex flex-col lg:col-span-3 min-h-0">
-          <div className="panel-header">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 min-h-0">
+        
+        {/* Left Column: Simulation Console */}
+        <div className="lg:col-span-2 panel flex flex-col overflow-hidden">
+          <div className="bg-[#1e1e1e] p-3 border-b border-[#333] flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white/70 text-[12px] font-mono">
+              <Terminal className="h-4 w-4" />
+              platform-simulator // {app?.name || "sandbox"}
+            </div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[14px] font-semibold">Chat</h2>
-              <span className="pill bg-info-soft border-primary/30 text-primary font-mono">{app.name}</span>
-              <span className="pill bg-muted border-border text-foreground font-mono text-[10px]">{app.blockIds.length} blocks</span>
-              <span className="pill bg-muted border-border text-muted-foreground">{app.modelLabel}</span>
-              <span className="pill bg-muted border-border text-muted-foreground">{app.guardrailProfile}</span>
+               <span className="pill bg-success/20 text-success border-success/30 font-mono text-[10px]">E-23 Active</span>
             </div>
           </div>
-
-          <div ref={threadRef} className="flex-1 overflow-auto p-4 space-y-3">
-            {messages.map((m, i) => (
-              <ChatBubble key={i} m={m} />
+          
+          <div className="flex-1 overflow-y-auto p-4 bg-[#0d1117] space-y-4">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                <div className={`max-w-[85%] rounded-md p-3 text-[13px] font-mono ${
+                  msg.role === "user" 
+                    ? "bg-[#1f6feb] text-white" 
+                    : msg.type === "trace"
+                    ? "bg-transparent text-[#8b949e] border border-[#30363d]"
+                    : msg.type === "intercept"
+                    ? "bg-[#490202] text-[#ff7b72] border border-[#8e1519]"
+                    : msg.type === "kill-switch"
+                    ? "bg-[#4a3600] text-[#e3b341] border border-[#9e6a03]"
+                    : "bg-[#21262d] text-[#c9d1d9] border border-[#30363d]"
+                }`}>
+                  {msg.type === "intercept" && <ShieldAlert className="h-4 w-4 mb-1.5" />}
+                  {msg.type === "kill-switch" && <StopCircle className="h-4 w-4 mb-1.5" />}
+                  {msg.content}
+                </div>
+              </div>
             ))}
-            {sending && (
-              <div className="flex items-center gap-2 text-muted-foreground text-[12px]">
-                <div className="flex gap-1">
-                  <Dot /><Dot delay={0.15} /><Dot delay={0.3} />
-                </div>
-                Generating response...
+            {isProcessing && (
+              <div className="text-[#8b949e] font-mono text-[12px] animate-pulse pl-2">
+                Evaluating safety policies...
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-border p-3 flex items-center gap-2">
-            <input
-              value={input} onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Send a message..."
-              className="flex-1 px-3 py-2 border border-border rounded text-[13px] bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-            <button onClick={send} disabled={sending || !input.trim()}
-              className="px-3.5 py-2 rounded bg-primary text-primary-foreground hover:bg-primary-hover disabled:opacity-50 inline-flex items-center gap-1.5 text-[13px] font-medium">
-              <Send className="h-3.5 w-3.5" /> Send
-            </button>
-          </div>
-        </div>
-
-        {/* TELEMETRY */}
-        <div className="panel flex flex-col lg:col-span-2 min-h-0 overflow-auto">
-          <div className="panel-header">
-            <h2 className="text-[14px] font-semibold">Request Telemetry</h2>
-            <span className="pill bg-success-soft border-success/30 text-success">
-              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-dot" /> live
-            </span>
-          </div>
-
-          <div className="p-4 space-y-4">
-            {mode === "compare" ? (
-              <CompareGrid t={telemetry} />
-            ) : (
-              <StatGrid t={telemetry} app={app} />
-            )}
-
-            {/* Guardrails */}
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                <ShieldCheck className="h-3 w-3" /> Guardrails
-              </div>
-              <div className="space-y-1.5">
-                <GuardrailRow label="PII Detection" ok={telemetry.guardrails.pii} reason={!telemetry.guardrails.pii ? telemetry.guardrails.reason : undefined} />
-                <GuardrailRow label="Injection Blocking" ok={telemetry.guardrails.injection} reason={!telemetry.guardrails.injection ? telemetry.guardrails.reason : undefined} />
-                <GuardrailRow label="Output Scan" ok={telemetry.guardrails.output} okText="Clean" />
-                <div className="flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded bg-muted/50">
-                  <span className="text-muted-foreground">Guardrail Profile</span>
-                  <span className="font-medium">{app.guardrailProfile}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Retrieved Context */}
-            <div>
-              <button onClick={() => setShowContext((s) => !s)}
-                className="w-full flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground">
-                <span className="flex items-center gap-1.5"><Database className="h-3 w-3" /> Retrieved Context</span>
-                {showContext ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          <div className="p-4 bg-[#161b22] border-t border-[#30363d]">
+            <div className="relative">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSimulate()}
+                placeholder="Type a test payload (e.g., '123-456-789' or 'ignore previous instructions')..."
+                className="w-full bg-[#0d1117] text-[#c9d1d9] border border-[#30363d] rounded-md pl-4 pr-12 py-3 text-[13px] font-mono focus:outline-none focus:border-[#1f6feb] placeholder:text-[#484f58]"
+                disabled={isProcessing}
+              />
+              <button 
+                onClick={handleSimulate}
+                disabled={isProcessing || !input.trim()}
+                className="absolute right-2 top-2 p-1.5 text-[#1f6feb] hover:bg-[#1f6feb]/10 rounded disabled:opacity-50 transition-colors"
+              >
+                <Send className="h-4 w-4" />
               </button>
-              {showContext && (
-                <div className="mt-2 space-y-2">
-                  <ContextChunk source="osfi-e23-guidelines-2024.pdf" chunk="47" score={0.892}
-                    text="Section 4.2: Initial margin requirements for equity derivative positions held by federally regulated financial institutions shall be no less than 8% of notional value..." />
-                  <ContextChunk source="risk-framework-v3.pdf" chunk="12" score={0.847}
-                    text="Enterprise internal policy mandates a 2% liquidity surcharge on all sub-investment-grade counterparty exposures, calculated daily and posted to VM-CSA..." />
-                </div>
-              )}
             </div>
           </div>
         </div>
-      </div>
-    </>
-  );
-}
 
-function ChatBubble({ m }: { m: Message }) {
-  if (m.role === "blocked") {
-    return (
-      <div className="rounded border border-destructive/40 bg-destructive-soft p-3 text-[13px] animate-fade-in">
-        <div className="flex items-center gap-2 text-destructive font-semibold mb-1">
-          <ShieldAlert className="h-4 w-4" /> {m.content}
+        {/* Right Column: Active Telemetry */}
+        <div className="space-y-6 overflow-y-auto">
+          <div className="panel p-0 overflow-hidden">
+            <div className="bg-muted/30 p-3 border-b border-border">
+              <h3 className="text-[13px] font-semibold flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" /> Active Guardrails
+              </h3>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-muted-foreground"><Fingerprint className="h-3.5 w-3.5" /> PII Redaction</span>
+                <span className="font-semibold text-success">BLOCK</span>
+              </div>
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-muted-foreground"><AlertTriangle className="h-3.5 w-3.5" /> Prompt Injection</span>
+                <span className="font-semibold text-success">BLOCK</span>
+              </div>
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-muted-foreground"><Lock className="h-3.5 w-3.5" /> Data Exfiltration</span>
+                <span className="font-semibold text-success">BLOCK</span>
+              </div>
+            </div>
+          </div>
+
+          {isAgent && (
+            <div className="panel p-0 overflow-hidden border-warning/30">
+              <div className="bg-warning-soft/30 p-3 border-b border-warning/20">
+                <h3 className="text-[13px] font-semibold text-warning flex items-center gap-2">
+                  <Activity className="h-4 w-4" /> Agentic Flight Controls
+                </h3>
+              </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-muted-foreground">Token Budget</span>
+                    <span className="font-mono">0 / 10,000</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-1.5">
+                    <div className="bg-warning h-1.5 rounded-full w-[0%]"></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-muted-foreground">ReAct Iteration Depth</span>
+                    <span className="font-mono">0 / 3 MAX</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-1.5">
+                    <div className="bg-warning h-1.5 rounded-full w-[0%]"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        {m.blockedReason && <div className="text-[12px] text-destructive/90">Reason: {m.blockedReason}</div>}
-      </div>
-    );
-  }
-  if (m.role === "user") {
-    return (
-      <div className="flex justify-end animate-fade-in">
-        <div className="max-w-[80%] rounded-lg rounded-tr-sm bg-primary text-primary-foreground px-3.5 py-2.5 text-[13px] leading-relaxed">
-          {m.content}
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="flex gap-2 animate-fade-in">
-      <div className="w-7 h-7 rounded bg-navy text-white text-[10px] font-semibold flex items-center justify-center shrink-0 mt-0.5">AI</div>
-      <div className="max-w-[85%] rounded-lg rounded-tl-sm bg-muted px-3.5 py-2.5 text-[13px] leading-relaxed border border-border">
-        {m.content}
-      </div>
-    </div>
-  );
-}
 
-function Dot({ delay = 0 }: { delay?: number }) {
-  return <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse-dot" style={{ animationDelay: `${delay}s` }} />;
-}
-
-function StatGrid({ t, app }: { t: Telemetry; app: any }) {
-  const high = t.cost > 0.01;
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <Stat icon={Coins} label="Total Cost" value={`$${t.cost.toFixed(4)}`} highlight={high} />
-      <Stat icon={Clock} label="Latency" value={`${t.latencyMs.toLocaleString()}ms`} />
-      <Stat icon={Cpu} label="Input Tokens" value={t.inTokens.toLocaleString()} />
-      <Stat icon={Cpu} label="Output Tokens" value={t.outTokens.toLocaleString()} />
-      <Stat icon={Cpu} label="Total Tokens" value={(t.inTokens + t.outTokens).toLocaleString()} />
-      <Stat icon={FileText} label="Model" value={app.modelLabel} small />
-      {t.agentSteps && <Stat icon={Cpu} label="Reasoning Steps" value={`${t.agentSteps} steps`} />}
-    </div>
-  );
-}
-
-function CompareGrid({ t }: { t: Telemetry }) {
-  const pipelineCost = t.cost;
-  const agentCost = t.agentCost ?? t.cost * 4.2;
-  const diff = (((agentCost - pipelineCost) / pipelineCost) * 100).toFixed(0);
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <div className="panel p-3 border-pattern-p1/40 bg-[hsl(var(--pattern-p1)/0.05)]">
-        <div className="text-[10px] uppercase tracking-wider text-pattern-p1 font-semibold mb-2">Pipeline</div>
-        <div className="space-y-1.5 text-[12px]">
-          <Row label="Cost" value={`$${pipelineCost.toFixed(4)}`} />
-          <Row label="Tokens" value={(t.inTokens + t.outTokens).toLocaleString()} />
-          <Row label="Latency" value={`${t.latencyMs}ms`} />
-          <Row label="LLM Calls" value="1" />
-        </div>
       </div>
-      <div className="panel p-3 border-pattern-p5/40 bg-[hsl(var(--pattern-p5)/0.05)]">
-        <div className="text-[10px] uppercase tracking-wider text-pattern-p5 font-semibold mb-2">Agent</div>
-        <div className="space-y-1.5 text-[12px]">
-          <Row label="Cost" value={`$${agentCost.toFixed(4)}`} highlight />
-          <Row label="Tokens" value={(t.agentTokens ?? (t.inTokens + t.outTokens) * 4).toLocaleString()} />
-          <Row label="Latency" value={`${t.latencyMs * 4}ms`} />
-          <Row label="Reasoning" value="7 steps" />
-        </div>
-      </div>
-      <div className="col-span-2 pill bg-warning-soft border-warning/40 text-warning justify-center">
-        Agent costs +{diff}% vs pipeline for the same query
-      </div>
-    </div>
-  );
-}
-
-function Row({ label, value, highlight }: any) {
-  return (
-    <div className="flex justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={cn("font-mono font-medium", highlight && "text-warning")}>{value}</span>
-    </div>
-  );
-}
-
-function Stat({ icon: Icon, label, value, highlight, small }: any) {
-  return (
-    <div className={cn("panel p-2.5", highlight && "border-warning/50 bg-warning-soft/50")}>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1 mb-1">
-        <Icon className="h-3 w-3" /> {label}
-      </div>
-      <div className={cn("font-mono font-semibold", small ? "text-[12px]" : "text-[15px]", highlight && "text-warning")}>{value}</div>
-    </div>
-  );
-}
-
-function GuardrailRow({ label, ok, reason, okText = "Pass" }: any) {
-  return (
-    <div className={cn("flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded border",
-      ok ? "bg-success-soft/50 border-success/30" : "bg-destructive-soft border-destructive/40")}>
-      <span className={cn(ok ? "text-foreground" : "text-destructive font-medium")}>{label}</span>
-      <span className={cn("font-medium", ok ? "text-success" : "text-destructive")}>
-        {ok ? `✓ ${okText === "Pass" ? `No ${label.toLowerCase().replace("blocking", "attempt").replace(" detection", "")}` : okText}` : `✗ ${reason ?? "Blocked"}`}
-      </span>
-    </div>
-  );
-}
-
-function ContextChunk({ source, chunk, score, text }: any) {
-  return (
-    <div className="rounded border border-border bg-muted/40 p-2.5">
-      <div className="flex items-center justify-between text-[11px] mb-1">
-        <span className="font-mono text-foreground">{source}</span>
-        <span className="text-muted-foreground">chunk {chunk} · score {score}</span>
-      </div>
-      <p className="text-[11.5px] text-muted-foreground leading-relaxed line-clamp-3">{text}</p>
     </div>
   );
 }
