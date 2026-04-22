@@ -1,21 +1,17 @@
 import { NavLink } from "react-router-dom";
 import {
-  LayoutDashboard, Boxes, Plus, Server, MessageSquare, ShieldCheck, Library,
+  LayoutDashboard, Boxes, Flag, ShieldCheck, Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { section: "Overview", items: [
-    { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+    { to: "/", label: "Vision Alignment", icon: LayoutDashboard, end: true },
   ]},
-  { section: "Platform", items: [
-    { to: "/use-cases", label: "Use Cases", icon: Library },
-    { to: "/building-blocks", label: "Building Blocks", icon: Boxes },
-  ]},
-  { section: "Applications", items: [
-    { to: "/create", label: "Create App", icon: Plus },
-    { to: "/deployed", label: "Deployed Apps", icon: Server },
-    { to: "/playground", label: "Playground", icon: MessageSquare },
+  { section: "Roadmap", items: [
+    { to: "/use-cases", label: "Reference Use Cases", icon: Library },
+    { to: "/building-blocks", label: "Shared Capabilities", icon: Boxes },
+    { to: "/create", label: "Validation Roadmap", icon: Flag },
   ]},
 ];
 
@@ -27,9 +23,9 @@ export function PortalSidebar() {
           AI
         </div>
         <div className="leading-tight">
-          <div className="text-[13px] font-semibold text-white">AI Developer Portal</div>
+          <div className="text-[13px] font-semibold text-white">Enterprise AI Portal</div>
           <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/70">
-            LLMOps · AgentOps · MLOps
+            Patterns · Governance · Validation
           </div>
         </div>
       </div>
@@ -67,11 +63,11 @@ export function PortalSidebar() {
       <div className="border-t border-sidebar-border px-3 py-3 space-y-2">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-[11px] font-semibold text-white">
-            AP
+            EA
           </div>
           <div className="leading-tight min-w-0">
-            <div className="text-[12px] font-medium text-white truncate">Alex Morgan</div>
-            <div className="text-[10px] text-sidebar-foreground/70 truncate">Platform Engineer</div>
+            <div className="text-[12px] font-medium text-white truncate">Program Sponsor View</div>
+            <div className="text-[10px] text-sidebar-foreground/70 truncate">Local MVP narrative</div>
           </div>
         </div>
         <div className="flex items-center justify-between px-2 py-1.5 rounded bg-sidebar-accent/50 border border-sidebar-border">

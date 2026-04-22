@@ -2,12 +2,11 @@ import { useLocation, Link } from "react-router-dom";
 import { ChevronRight, Bell, HelpCircle } from "lucide-react";
 
 const TITLES: Record<string, string> = {
-  "": "Dashboard",
-  "building-blocks": "Building Blocks",
+  "": "Vision Alignment",
+  "building-blocks": "Shared Capabilities",
   "patterns": "Patterns",
-  "create": "Create App",
-  "deployed": "Deployed Apps",
-  "playground": "Playground",
+  "create": "Validation Roadmap",
+  "use-cases": "Reference Use Cases",
 };
 
 export function TopBar() {
@@ -20,7 +19,7 @@ export function TopBar() {
       <nav className="flex items-center gap-1.5 text-[13px]">
         <Link to="/" className="text-muted-foreground hover:text-foreground">Platform</Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
-        <Link to="/" className="text-muted-foreground hover:text-foreground">AI Developer Portal</Link>
+        <Link to="/" className="text-muted-foreground hover:text-foreground">Enterprise AI Portal</Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
         <span className="font-semibold text-foreground">{title}</span>
       </nav>
@@ -31,9 +30,9 @@ export function TopBar() {
             <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-60 animate-pulse-dot" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
           </span>
-          All Systems Operational
+          Local MVP ready
         </span>
-        <span className="text-[11px] text-muted-foreground font-mono">us-east-1</span>
+        <span className="text-[11px] text-muted-foreground font-mono">roadmap preview</span>
         <button className="text-muted-foreground hover:text-foreground"><HelpCircle className="h-4 w-4" /></button>
         <button className="text-muted-foreground hover:text-foreground"><Bell className="h-4 w-4" /></button>
       </div>
