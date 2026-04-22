@@ -1,15 +1,15 @@
 import { ShieldCheck, User, Settings } from "lucide-react";
-import { useState } from "react";
+import { useApps } from "@/context/AppsContext";
 
 export function TopBar() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, setIsAdmin } = useApps();
 
   return (
     <header className="bg-white shadow-sm border-b border-sidebar-border z-10 h-[52px] shrink-0 flex items-center justify-between px-6">
       <div className="flex items-center gap-6">
         <div className="font-medium text-sidebar-foreground text-[14px]">Platform Operations</div>
         
-        {/* Persona Toggle */}
+        {/* Persona Toggle tied to Global State */}
         <div className="flex items-center bg-muted rounded-md p-0.5 border border-border">
           <button 
             onClick={() => setIsAdmin(false)}
