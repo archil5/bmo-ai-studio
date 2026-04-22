@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { IaCGenerator } from "@/components/portal/IaCGenerator";
 import { PageHeader } from "@/components/portal/PageHeader";
 import {
   BUILDING_BLOCKS, GUARDRAIL_PROFILES, TEAMS, USE_CASES, TRACK_META,
@@ -503,29 +504,36 @@ function StepDeploy({
 
   if (done) {
     return (
-      <div className="max-w-lg mx-auto text-center py-10 animate-fade-in">
-        <div className="w-14 h-14 rounded-full bg-success-soft border-2 border-success flex items-center justify-center mx-auto mb-4">
-          <Check className="h-7 w-7 text-success" />
+      <div className="max-w-3xl mx-auto py-8 animate-fade-in">
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="w-14 h-14 rounded-full bg-success-soft border-2 border-success flex items-center justify-center mb-4">
+            <CheckCircle className="h-7 w-7 text-success" />
+          </div>
+          <h2 className="text-xl font-semibold text-success flex items-center gap-2">
+            Starter Kit Generated
+          </h2>
+          <div className="font-mono text-[16px] font-semibold mt-2">{name}</div>
+          <p className="text-muted-foreground text-[13px] mt-2 max-w-lg mx-auto">
+            The platform has validated your architecture against enterprise principles and generated your AWS CDK scaffold. Hand this off to the DevOps cell for deployment.
+          </p>
         </div>
-        <div className="font-mono text-[20px] font-semibold mb-1">{name}</div>
-        {uc && <div className="text-[12px] text-muted-foreground mb-4">{uc.name}</div>}
-        <p className="text-[13px] text-muted-foreground mb-6 leading-relaxed max-w-sm mx-auto">
-          Application is live and governed. Every request is traced, costed, and guardrail-enforced automatically.
-        </p>
-        <div className="flex justify-center gap-2">
+        
+        {/* The Magic: */}
+        <IaCGenerator appName={name} blockIds={blockIds} />
+        
+        <div className="flex justify-center gap-3 mt-8">
           <button onClick={onTest}
             className="px-4 py-2 rounded bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary-hover inline-flex items-center gap-1.5">
-            Test in Playground <ArrowRight className="h-3.5 w-3.5" />
+            Open Guardrail Simulator <ArrowRight className="h-3.5 w-3.5" />
           </button>
           <button onClick={onView}
             className="px-4 py-2 rounded border border-border bg-card text-[13px] font-medium hover:bg-muted inline-flex items-center gap-1.5">
-            View All Apps <ArrowRight className="h-3.5 w-3.5" />
+            View Fleet Dashboard <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
     );
   }
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
       <div>
