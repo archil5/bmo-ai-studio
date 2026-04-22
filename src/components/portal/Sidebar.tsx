@@ -1,17 +1,17 @@
 import { NavLink } from "react-router-dom";
 import {
-  LayoutDashboard, Boxes, Flag, ShieldCheck, Library,
+  LayoutDashboard, Boxes, BriefcaseBusiness, ShieldCheck, Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { section: "Overview", items: [
-    { to: "/", label: "Vision Alignment", icon: LayoutDashboard, end: true },
+    { to: "/", label: "Platform Overview", icon: LayoutDashboard, end: true },
   ]},
-  { section: "Roadmap", items: [
+  { section: "Catalog", items: [
     { to: "/use-cases", label: "Reference Use Cases", icon: Library },
-    { to: "/building-blocks", label: "Shared Capabilities", icon: Boxes },
-    { to: "/create", label: "Validation Roadmap", icon: Flag },
+    { to: "/building-blocks", label: "Building Blocks", icon: Boxes },
+    { to: "/create", label: "Workspaces", icon: BriefcaseBusiness },
   ]},
 ];
 
@@ -25,7 +25,7 @@ export function PortalSidebar() {
         <div className="leading-tight">
           <div className="text-[13px] font-semibold text-white">Enterprise AI Portal</div>
           <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/70">
-            Patterns · Governance · Validation
+            Use Cases · Blocks · Workspaces
           </div>
         </div>
       </div>
@@ -66,8 +66,8 @@ export function PortalSidebar() {
             EA
           </div>
           <div className="leading-tight min-w-0">
-            <div className="text-[12px] font-medium text-white truncate">Program Sponsor View</div>
-            <div className="text-[10px] text-sidebar-foreground/70 truncate">Local MVP narrative</div>
+            <div className="text-[12px] font-medium text-white truncate">Technical implementation MVP</div>
+            <div className="text-[10px] text-sidebar-foreground/70 truncate">Local preview</div>
           </div>
         </div>
         <div className="flex items-center justify-between px-2 py-1.5 rounded bg-sidebar-accent/50 border border-sidebar-border">
