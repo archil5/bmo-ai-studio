@@ -2,10 +2,10 @@ import { useLocation, Link } from "react-router-dom";
 import { ChevronRight, Bell, HelpCircle } from "lucide-react";
 
 const TITLES: Record<string, string> = {
-  "": "Vision Alignment",
-  "building-blocks": "Shared Capabilities",
+  "": "Platform Overview",
+  "building-blocks": "Building Blocks",
   "patterns": "Patterns",
-  "create": "Validation Roadmap",
+  "create": "Workspaces",
   "use-cases": "Reference Use Cases",
 };
 
@@ -30,9 +30,9 @@ export function TopBar() {
             <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-60 animate-pulse-dot" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
           </span>
-          Local MVP ready
+          Technical portal local
         </span>
-        <span className="text-[11px] text-muted-foreground font-mono">roadmap preview</span>
+        <span className="text-[11px] text-muted-foreground font-mono">workspace preview</span>
         <button className="text-muted-foreground hover:text-foreground"><HelpCircle className="h-4 w-4" /></button>
         <button className="text-muted-foreground hover:text-foreground"><Bell className="h-4 w-4" /></button>
       </div>
