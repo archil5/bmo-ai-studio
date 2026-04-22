@@ -1,41 +1,34 @@
-import { useLocation, Link } from "react-router-dom";
-import { ChevronRight, Bell, HelpCircle } from "lucide-react";
-
-const TITLES: Record<string, string> = {
-  "": "Dashboard",
-  "building-blocks": "Building Blocks",
-  "patterns": "Patterns",
-  "create": "Create App",
-  "deployed": "Deployed Apps",
-  "playground": "Playground",
-};
+import { ShieldCheck, User, Settings } from "lucide-react";
+import { useState } from "react";
 
 export function TopBar() {
-  const { pathname } = useLocation();
-  const seg = pathname.replace(/^\//, "").split("/")[0];
-  const title = TITLES[seg] ?? "Dashboard";
+  const [isAdmin, setIsAdmin] = useState(false);
 
   return (
-    <header className="h-12 border-b border-border bg-card flex items-center justify-between px-5 shrink-0">
-      <nav className="flex items-center gap-1.5 text-[13px]">
-        <Link to="/" className="text-muted-foreground hover:text-foreground">Platform</Link>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
-        <Link to="/" className="text-muted-foreground hover:text-foreground">AI Developer Portal</Link>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60" />
-        <span className="font-semibold text-foreground">{title}</span>
-      </nav>
+    <header className="bg-white shadow-sm border-b border-sidebar-border z-10 h-[52px] shrink-0 flex items-center justify-between px-6">
+      <div className="flex items-center gap-6">
+        <div className="font-medium text-sidebar-foreground text-[14px]">Platform Operations</div>
+        
+        {/* Persona Toggle */}
+        <div className="flex items-center bg-muted rounded-md p-0.5 border border-border">
+          <button 
+            onClick={() => setIsAdmin(false)}
+            className={`flex items-center gap-2 px-3 py-1 text-[11px] font-medium rounded-sm transition-all ${!isAdmin ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <User className="h-3 w-3" /> Dev Workspace
+          </button>
+          <button 
+            onClick={() => setIsAdmin(true)}
+            className={`flex items-center gap-2 px-3 py-1 text-[11px] font-medium rounded-sm transition-all ${isAdmin ? 'bg-navy text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Settings className="h-3 w-3" /> Platform Admin
+          </button>
+        </div>
+      </div>
 
-      <div className="flex items-center gap-3">
-        <span className="pill bg-success-soft border-success/30 text-success">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-success opacity-60 animate-pulse-dot" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
-          </span>
-          All Systems Operational
-        </span>
-        <span className="text-[11px] text-muted-foreground font-mono">us-east-1</span>
-        <button className="text-muted-foreground hover:text-foreground"><HelpCircle className="h-4 w-4" /></button>
-        <button className="text-muted-foreground hover:text-foreground"><Bell className="h-4 w-4" /></button>
+      <div className="flex items-center text-[11px] font-medium text-success bg-success-soft px-2.5 py-1 rounded border border-success/20">
+        <span className="h-1.5 w-1.5 bg-success rounded-full mr-2 animate-pulse"></span>
+        All Systems Operational
       </div>
     </header>
   );

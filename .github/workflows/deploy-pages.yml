@@ -2,8 +2,7 @@ name: Deploy PoC to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
-  workflow_dispatch:
+    branches: ["-newcision"] # <-- Put your current branch name here
 
 permissions:
   contents: read

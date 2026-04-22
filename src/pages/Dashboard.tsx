@@ -1,201 +1,159 @@
-import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/portal/PageHeader";
-import { StatusPill } from "@/components/portal/PatternBadge";
-import { RECENT_ACTIVITY, USE_CASES, TRACK_META, type Track } from "@/lib/mockData";
-import {
-  Activity, ShieldAlert, DollarSign, Server, ArrowUpRight,
-  Workflow, Bot, FlaskConical, ArrowRight,
-} from "lucide-react";
 import { useApps } from "@/context/AppsContext";
-
-const TRACK_ICON: Record<Track, any> = {
-  llmops: Workflow,
-  agentops: Bot,
-  mlops: FlaskConical,
-};
-
-function MetricCard({ label, value, delta, icon: Icon, accent }: any) {
-  return (
-    <div className="panel p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</div>
-          <div className="text-[26px] font-semibold mt-1.5 tracking-tight font-mono">{value}</div>
-          {delta && (
-            <div className="text-[11px] text-success mt-1 flex items-center gap-1">
-              <ArrowUpRight className="h-3 w-3" /> {delta}
-            </div>
-          )}
-        </div>
-        <div className={`w-9 h-9 rounded-md flex items-center justify-center ${accent}`}>
-          <Icon className="h-4 w-4" />
-        </div>
-      </div>
-    </div>
-  );
-}
+import { 
+  ShieldAlert, Activity, DollarSign, Target, 
+  CheckCircle2, AlertTriangle, Fingerprint, Lock
+} from "lucide-react";
 
 export default function Dashboard() {
   const { apps } = useApps();
-  const navigate = useNavigate();
-  const totalApps = apps.length;
 
-  const trackStats = (["llmops", "agentops", "mlops"] as Track[]).map((track) => ({
-    track,
-    count: apps.filter((a) => {
-      const uc = USE_CASES.find((u) => u.id === a.useCaseId);
-      return uc?.track === track;
-    }).length,
-    useCases: USE_CASES.filter((u) => u.track === track).length,
-  }));
+  // Calculate Roadmap KPIs based on active apps
+  const activeApps = apps.filter(a => a.status === "Active");
+  const totalCost = activeApps.reduce((sum, app) => sum + app.totalCost, 0);
+  
+  // Verify 100% Observability & Cost Enforcement
+  const compliantApps = activeApps.filter(a => 
+    a.blockIds.includes("OBSERVE") && a.blockIds.includes("COST")
+  );
+  const complianceRate = activeApps.length > 0 
+    ? Math.round((compliantApps.length / activeApps.length) * 100) 
+    : 100;
 
   return (
     <>
-      <PageHeader
-        title="Dashboard"
-        subtitle="Real-time view of LLMOps, AgentOps, and MLOps activity across all deployed BMO applications."
+      <PageHeader 
+        title="Fleet Observability" 
+        subtitle="Enterprise AI Platform Control Plane. Monitoring adoption, compliance, and showback across all LOBs." 
       />
 
-      {/* Top metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <MetricCard label="Total Deployed Apps" value={totalApps} delta="+2 this week"
-          icon={Server} accent="bg-info-soft text-primary" />
-        <MetricCard label="Total Invocations" value="6,147" delta="+18.2% vs 7d"
-          icon={Activity} accent="bg-info-soft text-primary" />
-        <MetricCard label="Guardrail Interventions" value="43" delta="+3 today"
-          icon={ShieldAlert} accent="bg-destructive-soft text-destructive" />
-        <MetricCard label="Total Token Cost" value="$78.18" delta="Under budget"
-          icon={DollarSign} accent="bg-success-soft text-success" />
-      </div>
-
-      {/* Track breakdown cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {trackStats.map(({ track, count, useCases }) => {
-          const meta = TRACK_META[track];
-          const Icon = TRACK_ICON[track];
-          return (
-            <div
-              key={track}
-              className="panel p-4 cursor-pointer hover:shadow-sm transition-all"
-              onClick={() => navigate("/use-cases")}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`flex items-center gap-2 text-[13px] font-semibold ${meta.color}`}>
-                  <Icon className="h-4 w-4" />
-                  {meta.label}
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="flex items-end justify-between">
-                <div>
-                  <div className="text-[26px] font-bold font-mono text-foreground">{count}</div>
-                  <div className="text-[11px] text-muted-foreground">active apps</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[20px] font-semibold font-mono text-muted-foreground">{useCases}</div>
-                  <div className="text-[11px] text-muted-foreground">use cases available</div>
-                </div>
-              </div>
-              <div className="mt-2 text-[11px] text-muted-foreground leading-snug">{meta.description}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity table */}
-        <div className="lg:col-span-2 panel">
-          <div className="panel-header">
-            <div>
-              <h2 className="text-[14px] font-semibold">Recent Activity</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Last 8 invocations across all applications
-              </p>
-            </div>
-            <span className="pill bg-success-soft border-success/30 text-success">live</span>
+      {/* KPI Row - Aligned with Director's Roadmap Goals */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="panel p-4 flex flex-col gap-1">
+          <div className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider flex items-center gap-2">
+            <Target className="h-3.5 w-3.5" /> Pattern Adoption
           </div>
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>App</th>
-                  <th>Query</th>
-                  <th className="text-right">Latency</th>
-                  <th className="text-right">Tokens</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {RECENT_ACTIVITY.map((row, i) => (
-                  <tr key={i}>
-                    <td className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">{row.ts.split(" ")[1]}</td>
-                    <td>
-                      <div className="font-medium text-foreground text-[12px]">{row.app}</div>
-                      <div className="text-[10px] text-muted-foreground">{row.team}</div>
-                    </td>
-                    <td className={`max-w-[260px] truncate text-[12px] ${row.status === "Blocked" ? "text-destructive font-medium" : ""}`}
-                      title={row.query}>
-                      {row.query}
-                    </td>
-                    <td className="text-right font-mono text-[12px]">{row.latencyMs.toLocaleString()}ms</td>
-                    <td className="text-right font-mono text-[12px]">{row.tokens.toLocaleString()}</td>
-                    <td><StatusPill status={row.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="text-2xl font-mono font-semibold mt-1">4 / 16</div>
+          <div className="text-[11px] text-success flex items-center gap-1 mt-1">
+            Sprint 1 On Track
           </div>
         </div>
 
-        {/* Right column */}
-        <div className="space-y-4">
-          {/* Active apps */}
-          <div className="panel">
-            <div className="panel-header">
-              <h2 className="text-[14px] font-semibold">Active Applications</h2>
-              <span className="text-[11px] text-muted-foreground">{apps.length} total</span>
+        <div className="panel p-4 flex flex-col gap-1">
+          <div className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5" /> Full Observability
+          </div>
+          <div className="text-2xl font-mono font-semibold mt-1">{complianceRate}%</div>
+          <div className="text-[11px] text-muted-foreground mt-1">
+            {compliantApps.length} of {activeApps.length} workloads emitting metrics
+          </div>
+        </div>
+
+        <div className="panel p-4 flex flex-col gap-1">
+          <div className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider flex items-center gap-2">
+            <DollarSign className="h-3.5 w-3.5" /> Cost Attribution
+          </div>
+          <div className="text-2xl font-mono font-semibold mt-1">${totalCost.toFixed(2)}</div>
+          <div className="text-[11px] text-success mt-1">
+            100% Showback via AIPs
+          </div>
+        </div>
+
+        <div className="panel p-4 flex flex-col gap-1 bg-navy text-white border-navy">
+          <div className="text-white/70 text-[11px] font-medium uppercase tracking-wider flex items-center gap-2">
+            <ShieldAlert className="h-3.5 w-3.5" /> Agent Safety
+          </div>
+          <div className="text-2xl font-mono font-semibold mt-1">0</div>
+          <div className="text-[11px] text-white/70 mt-1">
+            Critical Incidents in Prod
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Governance Posture */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="panel p-0 overflow-hidden">
+            <div className="p-4 border-b border-border bg-muted/30">
+              <h3 className="text-[13px] font-semibold flex items-center gap-2">
+                <Lock className="h-4 w-4 text-primary" /> OSFI E-23 Governance Posture
+              </h3>
             </div>
-            <div className="divide-y divide-border">
-              {apps.slice(0, 5).map((app) => {
-                const uc = USE_CASES.find((u) => u.id === app.useCaseId);
-                const track = uc?.track;
-                const meta = track ? TRACK_META[track] : null;
-                return (
-                  <div key={app.id} className="flex items-center justify-between px-4 py-2.5">
-                    <div>
-                      <div className="font-mono text-[12px] font-medium">{app.name}</div>
-                      <div className="text-[10px] text-muted-foreground">{app.team}</div>
-                    </div>
-                    <div className="text-right">
-                      {meta && (
-                        <div className={`text-[10px] font-semibold ${meta.color}`}>{meta.label}</div>
-                      )}
-                      <div className="text-[10px] text-muted-foreground">{app.blockIds.length} blocks</div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="p-0">
+              <table className="w-full text-left text-[12px]">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="font-medium p-3">Consuming App</th>
+                    <th className="font-medium p-3">LOB Team</th>
+                    <th className="font-medium p-3">Model Registry</th>
+                    <th className="font-medium p-3">Guardrail Profile</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeApps.map((app) => (
+                    <tr key={app.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="p-3 font-mono font-medium text-primary">{app.name}</td>
+                      <td className="p-3">{app.team}</td>
+                      <td className="p-3">
+                        <span className="flex items-center gap-1.5 text-success">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Approved
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-destructive-soft text-destructive border border-destructive/20">
+                          {app.guardrailProfile}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {activeApps.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                        No active deployments.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
+        </div>
 
-          {/* Governance status */}
-          <div className="panel p-4">
-            <h3 className="text-[13px] font-semibold mb-3">Governance Status</h3>
-            {[
-              ["OSFI E-23 Compliance", true],
-              ["AIP Enforcement", true],
-              ["PII Detection", true],
-              ["Injection Blocking", true],
-              ["VPC PrivateLink", true],
-              ["KMS CMK Encryption", true],
-              ["Audit Logging", true],
-            ].map(([label, ok]) => (
-              <div key={label as string} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                <span className="text-[12px] text-muted-foreground">{label as string}</span>
-                <span className="text-[11px] font-semibold text-success">✓ Active</span>
+        {/* Right Column: Live Intercepts */}
+        <div className="space-y-6">
+          <div className="panel p-0 overflow-hidden">
+            <div className="p-4 border-b border-border bg-muted/30 flex justify-between items-center">
+              <h3 className="text-[13px] font-semibold flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-destructive" /> Platform Guardrail Intercepts
+              </h3>
+              <span className="text-[10px] text-muted-foreground">Last 24h</span>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="h-6 w-6 rounded bg-destructive-soft flex items-center justify-center shrink-0 mt-0.5">
+                  <Fingerprint className="h-3.5 w-3.5 text-destructive" />
+                </div>
+                <div>
+                  <div className="text-[12px] font-medium">PII Redaction Triggered</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    <span className="font-mono text-primary">compliance-agent</span> attempted to log unmasked SIN. Blocked by global policy.
+                  </div>
+                  <div className="text-[9px] text-muted-foreground mt-1">12 mins ago</div>
+                </div>
               </div>
-            ))}
+              <div className="flex items-start gap-3">
+                <div className="h-6 w-6 rounded bg-warning-soft flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                </div>
+                <div>
+                  <div className="text-[12px] font-medium">Agent Token Budget Exceeded</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    <span className="font-mono text-primary">pcb-rag-bot</span> hit 10k token limit. ReAct loop forcefully terminated.
+                  </div>
+                  <div className="text-[9px] text-muted-foreground mt-1">45 mins ago</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
